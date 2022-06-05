@@ -1,7 +1,8 @@
+-- encoding: cyrillic (windows 1251)
 script_author('donaks')
 
--- string.lower Рё string.upper РЅРµ СЂР°Р±РѕС‚Р°РµС‚ СЃ СЂСѓСЃСЃРєРёРјРё СЃРёРјРІРѕР»Р°РјРё
--- РїРѕСЌС‚РѕРјСѓ РѕС‚РґРµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ СЃ РїРµСЂРµРґРµР»С‹РІР°РЅРёРµРј.
+-- string.lower и string.upper не работает с русскими символами
+-- поэтому отдельная функция с переделыванием.
 local lu_rus, ul_rus = {}, {}
 for i = 192, 223 do
 	local A, a = string.char(i), string.char(i + 32)
@@ -79,31 +80,30 @@ DISPATCH_SOUNDS = {
 	}
 }
 
-function scandir(directory)
-	-- Р’РѕР·РІСЂР°С‰Р°РµС‚ РјР°СЃСЃРёРІ РІСЃРµС… С„Р°Р№Р»РѕРІ РІ РґРёСЂРµРєС‚РѕСЂРёРё.
+function scandir(mask)
+	-- Возвращает массив всех файлов по маске.
+	local handle
+	local t = {}
+	handle, t[1] = findFirstFile(mask)
+	for _ = 1, 1000 do
+		t[#t+1] = findNextFile(handle)
+		if not t[#t] then break end
+	end
 
-    local i, t = 0, {}
-    local pfile = io.popen('dir "'..directory..'" /b')
-    for filename in pfile:lines() do
-        i = i + 1
-        -- РµСЃР»Рё СЃРѕРґРµСЂР¶РёС‚ С‚РѕС‡РєСѓ (С„Р°Р№Р», Р° РЅРµ РїР°РїРєР°)
-        if filename:find("%.") then
-        	t[i] = directory..filename
-        end
-    end
-    pfile:close()
     return t
 end
 
--- РҐСЂР°РЅРёС‚ РІ СЃРµР±Рµ РІСЃРµ С„Р°Р№Р»С‹
-CODE_0_SOUNDS = scandir(PATH.audio..PATH.code0)
-CODE_1_SOUNDS = scandir(PATH.audio..PATH.code1)
-GANG_ACTIVITY_SOUNDS = scandir(PATH.audio..PATH.gangActivity)
-AREA_AND_CODE_SOUNDS = scandir(PATH.audio..PATH.areaAndCode)
+-- Хранит в себе все файлы
+CODE_0_SOUNDS = scandir(PATH.audio..PATH.code0.."*.mp3")
+CODE_1_SOUNDS = scandir(PATH.audio..PATH.code1.."*.mp3")
+GANG_ACTIVITY_SOUNDS = scandir(PATH.audio..PATH.gangActivity.."*.mp3")
+AREA_AND_CODE_SOUNDS = scandir(PATH.audio..PATH.areaAndCode.."*.wav")
 
--- РљР»СЋС‡ - РРјСЏР¤Р°Р№Р»Р°РЎР¦РІРµС‚РѕРј.wav.
--- Р—РЅР°С‡РµРЅРёРµ РјР°СЃСЃРёРІ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРІ С†РІРµС‚РѕРІ, РєРѕС‚РѕСЂС‹Рµ Рє РЅРµРјСѓ РѕС‚РЅРѕСЃСЏС‚СЃСЏ.
--- Р‘С‹Р» РЅР°РїРёСЃР°РЅ РІСЂСѓС‡РЅСѓСЋ. Р’ РєРѕРґРµ Р±РµСЂРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїРµСЂРІС‹Р№ С†РІРµС‚ Р°РІС‚Рѕ, РІС‚РѕСЂРѕР№ РёРіРЅРѕСЂРёСЂСѓРµС‚СЃСЏ.
+-- Ключ - ИмяФайлаСЦветом.wav. 
+-- Если же префикс Light или Dark, то воспроизводится два звука.
+-- Значение - массив идентификаторов цветов, которые к нему относятся.
+-- Был написан вручную. Диспетчер воспроизводит либо первый цвет авто, либо оба,
+-- если транспорт в массиве CARS_TO_SOUND_TWO_COLORS
 COLORS = {
 	Blue={2, 7, 12, 10, 20, 28, 32, 39, 53, 54, 59, 67, 71, 75, 79, 87, 91, 93, 94, 95, 97, 98, 100, 101, 103, 106, 108, 116, 116, 125, 130, 134, 135, 139, 152, 155, 157, 162, 163, 165, 166, 198, 201, 203, 204, 208, 209, 210, 217, 223, 240, 246, 255},
 	Black={0, 36, 40, 127, 129, 133, 148, 164, 186, 205, 206, 215, 236},
@@ -115,17 +115,17 @@ COLORS = {
 	Pink={5, 85, 126, 161, 220},
 	Red={3, 17, 18, 21, 22, 42, 43, 45, 58, 62, 70, 74, 78, 80, 82, 88, 115, 117, 121, 124, 175, 181},
 	White={1, 14, 15, 63, 64, 68, 76, 89, 90, 96}
-}
 
--- РўСЂР°РЅСЃРїРѕСЂС‚, РіРґРµ РґРІР° С†РІРµС‚Р° РёРјРµСЋС‚ Р·РЅР°С‡РµРЅРёРµ
--- Р’РѕСЃРїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ РєР°Рє White Red Firetrack
+}
+-- Транспорт, где двойной цвет.
+-- Воспроизводится как "White Red Firetrack"
 CARS_TO_SOUND_TWO_COLORS = {
 	407, -- Firetruck
 	416, -- Ambulance
-	423, -- Р¤СѓСЂРіРѕРЅС‡РёРє СЃ РјРѕСЂРѕР¶РµРЅС‹Рј
+	423, -- Фургончик с мороженым
 	424, -- BF Injection
 	427, -- Enforcer
-	428, -- РРЅРєР°СЃСЃР°С‚РѕСЂ
+	428, -- Инкассатор
 	429, -- Banshee
 	431, -- Bus
 	444, -- Monster
@@ -169,36 +169,36 @@ CARS_TO_SOUND_TWO_COLORS = {
 }
 
 
--- РўСЂР°РЅСЃРїРѕСЂС‚РЅС‹Рµ СЃСЂРµРґСЃС‚РІР° СЃ РѕР±РѕР·РЅР°С‡РµРЅРЅС‹Рј С†РІРµС‚РѕРј
+-- Транспортные средства, расцветка которых не зависит от системного цвета
 CARS_WITH_DEF_COLOR = {
-	[406]="Grey", -- Dumper
-	[417]="Grey", -- Helicopter
+	[406]="Silver", -- Dumper
+	[417]="Silver", -- Helicopter
 	[425]="Green", -- Hunter
-	[432]="Not sound", -- РўР°РЅРє
+	[432]="Not sound", -- Танк
 	[434]="Customize", -- Hotknife
 	[447]="Not sound", -- Helipopter Seasparrow
-	[449]="Not sound", -- РўСЂР°РјРІР°Р№
-	[464]="Red", -- РЎР°РјРѕР»С‘С‚РёРє
-	[465]="Green", -- Р’РµСЂС‚РѕР»С‘С‚РёРє
+	[449]="Not sound", -- Трамвай
+	[464]="Red", -- Самолётик
+	[465]="Green", -- Вертолётик
 	[470]="Copper", -- Patriot
-	[486]="Not sound", -- Р‘СѓР»СЊРґРѕР·РµСЂ
-	[501]="Brown", -- Р’РµСЂС‚РѕР»С‘С‚РёРє
-	[520]="Grey", -- Hydra
-	[523]="White", -- HPV1000
+	[486]="Not sound", -- Бульдозер
+	[501]="Brown", -- Вертолётик
+	[520]="Silver", -- Hydra
+	[523]="Silver", -- HPV1000
 	[525]="White", -- Tow Truck
 	[528]="Blue", -- FBI Truck
-	[532]="Not sound", -- РљРѕРјР±Р°Р№РЅ
+	[532]="Not sound", -- Комбайн
 	[548]="Green", -- Cargobob
 	[557]="Customize", -- Monster A
 	[557]="Customize", -- Monster B
-	[568]="Brown", -- Bandito
+	[568]="Not sound", -- Bandito
 	[571]="Customize", -- Kart
 	[601]="Blue" -- S.W.A.T.
 }
 
--- РљР»Р°СЃСЃРёС„РёРєР°С†РёРё Р°РІС‚Рѕ, РєРѕС‚РѕСЂС‹Рµ РЅР°Р·С‹РІР°РµС‚ РґРёСЃРїРµС‚С‡РµСЂ
--- РљР»СЋС‡ - РРјСЏР¤Р°Р№Р»Р°РЎРќР°Р·РІР°РЅРёРµРјРђРІС‚Рѕ.wav
--- Р—РЅР°С‡РµРЅРёРµ - РёРґС‹ Р°РІС‚РѕРјРѕР±РёР»РµР№, РєРѕС‚РѕСЂС‹Рµ Рє РЅРёРј РѕС‚РЅРѕСЃСЏС‚СЃСЏ.
+-- Классификации авто, которые называет диспетчер
+-- Ключ - ИмяФайлаСНазваниемАвто.wav
+-- Значение - иды автомобилей, которые к ним относятся.
 CARS = {
 	["2 Door"]={434, 542, 583},
 	["4 Door"]={405, 421, 426, 445, 466, 467, 492, 507, 529, 540, 546, 547, 550, 551, 580, 585, 604},
@@ -250,8 +250,8 @@ CARS = {
 	["Van"]={413, 414, 428, 433, 440, 456, 459, 478, 482, 498, 499, 552, 582, 588, 609}
 }
 
--- СЂР°Р№РѕРЅС‹, РєРѕС‚РѕСЂС‹Рµ РЅРµ РѕР·РІСѓС‡РёРІР°РµС‚ РґРёСЃРїРµС‚С‡РµСЂ
--- РљР»СЋС‡: РЅР°Р·РІР°РЅРёРµ СЂР°Р№РѕРЅР°, Р·РЅР°С‡РµРЅРёРµ: СЂР°Р№РѕРЅ, РЅР° РєРѕС‚РѕСЂС‹Р№ Р·Р°РјРµРЅСЏС‚СЊ.
+-- районы, которые не озвучивает диспетчер
+-- Ключ: название района, значение: район, на который заменять.
 AREAS_NOT_VOICED = {
 	["the strip"]="Las Venturas",
 	["jefferson"]="East Los Santos",
@@ -279,25 +279,26 @@ AREAS_NOT_VOICED = {
 	["palisades"]="Pallisades",
 	["restricted area"]="Bone County",
 	["area 69"]="Bone County",
-	["area 51"]="Bone County"
+	["area 51"]="Bone County",
+	["pirates in mens pants"]="Las Venturas"
 }
 
--- Р•СЃР»Рё РІ СЂР°С†РёРё РµСЃС‚СЊ РІРѕРїСЂРѕСЃРёС‚РµР»СЊРЅРѕРµ СЃР»РѕРІРѕ Рё РєРѕРґ 1 РёР»Рё РєРѕРґ 0 СЃР»РѕРІРѕ,
--- Рє РїСЂРёРјРµСЂСѓ: "РџРѕС‡РµРјСѓ Р±С‹Р» РѕР±СЉСЏРІР»РµРЅ code-0?" РёР»Рё "РљС‚Рѕ РѕР±СЉСЏРІРёР» РєРѕРґ 0?",
--- Р·РІСѓРє РЅРµ РїСЂРѕРёРіСЂС‹РІР°РµС‚СЃСЏ.
+-- Если в рации есть вопросительное слово и код 1 или код 0 слово,
+-- к примеру: "Почему был объявлен code-0?" или "Кто объявил код 0?",
+-- звук не проигрывается.
 QUESTION_WORDS = {
-	"С‡С‚Рѕ", "РїРѕС‡РµРјСѓ", "Р·Р°С‡РµРј", "РєСѓРґР°", "РєС‚Рѕ", "РєРѕРіРґР°", "РіРґРµ", "РѕС‚РєСѓРґР°", "С‡РµР№", "РєР°Рє"
+	"что", "почему", "зачем", "куда", "кто", "когда", "где", "откуда", "чей", "как"
 }
 
-BTN1 = "Р’С‹Р±СЂР°С‚СЊ"
-BTN2 = "РћС‚РјРµРЅР°"
+BTN1 = "Выбрать"
+BTN2 = "Отмена"
 
 
 
 
 
 
--- Р”Р°Р»РµРµ РёРґСѓС‚ РјР°СЃСЃРёРІС‹ СЃ РЅР°Р·РІР°РЅРёСЏРјРё Р°РІС‚РѕРјРѕР±РёР»РµР№ Рё СЂР°Р№РѕРЅРѕРІ.
+-- Далее идут массивы с названиями автомобилей и районов.
 
 CAR_NAMES = {
 	[400] = "Landstalker",
@@ -359,7 +360,7 @@ CAR_NAMES = {
 	[456] = "Yankee",
 	[457] = "Caddy",
 	[458] = "Solair",
-	[459] = "Topfun Van (BerkleyвЂ™s RC)",
+	[459] = "Topfun Van (Berkley’s RC)",
 	[460] = "Skimmer",
 	[461] = "PCJ-600",
 	[462] = "Faggio",
@@ -456,8 +457,8 @@ CAR_NAMES = {
 	[553] = "Nevada",
 	[554] = "Yosemite",
 	[555] = "Windsor",
-	[556] = "Monster В«AВ»",
-	[557] = "Monster В«BВ»",
+	[556] = "Monster «A»",
+	[557] = "Monster «B»",
 	[558] = "Uranus",
 	[559] = "Jester",
 	[560] = "Sultan",
@@ -506,8 +507,8 @@ CAR_NAMES = {
 	[603] = "Phoenix",
 	[604] = "Glendale",
 	[605] = "Sadler",
-	[606] = "Baggage Trailer В«AВ»",
-	[607] = "Baggage Trailer В«BВ»",
+	[606] = "Baggage Trailer «A»",
+	[607] = "Baggage Trailer «B»",
 	[608] = "Tug Stairs Trailer",
 	[609] = "Boxville",
 	[610] = "Farm Trailer",
@@ -893,5 +894,192 @@ AREAS = {
     {"Las Venturas", 869.461, 596.349, -242.990, 2997.060, 2993.870, 900.000},
     {"Red County", -1213.910, -768.027, -242.990, 2997.060, 596.349, 900.000},
     {"Los Santos", 44.615, -2892.970, -242.990, 2997.060, -768.027, 900.000}
+}
+
+LIST_AREAS_IN_REGIONS = {
+	["Bone County"]={
+ 		"Las Brujas",
+ 		"Regular Tom",
+ 		"El Castillo del Diablo",
+ 		"Green Palms",
+ 		"Las Payasadas",
+ 		"Lil' Probe Inn",
+ 		"'The Big Ear'",
+ 		"Verdant Meadows",
+ 		"Octane Springs",
+ 		"Fort Carson",
+ 		"Hunter Quarry",
+ 		"Restricted Area"
+ 	},
+	["San Fierro"]={
+ 		"Avispa Country Club",
+ 		"Easter Bay Airport",
+ 		"Garcia",
+ 		"Esplanade East",
+ 		"Cranberry Station",
+ 		"Foster Valley",
+ 		"Queens",
+ 		"Gant Bridge",
+ 		"King's",
+ 		"Downtown",
+ 		"Ocean Flats",
+ 		"Easter Tunnel",
+ 		"Garver Bridge",
+ 		"Kincaid Bridge",
+ 		"Chinatown",
+ 		"Esplanade North",
+ 		"Battery Point",
+ 		"Doherty",
+ 		"City Hall",
+ 		"Hashbury",
+ 		"Santa Flora",
+ 		"Easter Basin",
+ 		"San Fierro Bay",
+ 		"Paradiso",
+ 		"Juniper Hill",
+ 		"Juniper Hollow",
+ 		"Financial",
+ 		"Calton Heights",
+ 		"Palisades",
+ 		"Missionary Hill",
+ 		"Mount Chiliad"
+ 	},
+	["Los Santos"]={
+ 		"East Los Santos",
+ 		"Temple",
+ 		"Unity Station",
+ 		"Los Flores",
+ 		"Downtown Los Santos",
+ 		"Market Station",
+ 		"Jefferson",
+ 		"Mulholland",
+ 		"Rodeo",
+ 		"Little Mexico",
+ 		"Los Santos International",
+ 		"Richman",
+ 		"Conference Center",
+ 		"Las Colinas",
+ 		"Willowfield",
+ 		"Vinewood",
+ 		"Verona Beach",
+ 		"Commerce",
+ 		"Idlewood",
+ 		"Ocean Docks",
+ 		"Glen Park",
+ 		"Marina",
+ 		"Pershing Square",
+ 		"Market",
+ 		"Verdant Bluffs",
+ 		"East Beach",
+ 		"Ganton",
+ 		"El Corona",
+ 		"Playa del Seville",
+ 		"Santa Maria Beach"
+ 	},
+	["Tierra Robada"]={
+ 		"Aldea Malvada",
+ 		"Kincaid Bridge",
+ 		"Garver Bridge",
+ 		"Bayside Marina",
+ 		"Robada Intersection",
+ 		"Las Barrancas",
+ 		"Sherman Reservoir",
+ 		"Valle Ocultado",
+ 		"Bayside Tunnel",
+ 		"Gant Bridge",
+ 		"El Quebrados",
+ 		"Arco del Oeste",
+ 		"The Sherman Dam",
+ 		"Bayside",
+ 		"San Fierro Bay"
+ 	},
+	["Red County"]={
+ 		"Montgomery Intersection",
+ 		"Frederick Bridge",
+ 		"Montgomery",
+ 		"Hampton Barns",
+ 		"Martin Bridge",
+ 		"The Mako Span",
+ 		"Mulholland",
+ 		"Fallow Bridge",
+ 		"Easter Bay Chemicals",
+ 		"Richman",
+ 		"Hilltop Farm",
+ 		"Easter Bay Airport",
+ 		"Hankypanky Point",
+ 		"Flint Water",
+ 		"Blueberry",
+ 		"Dillimore",
+ 		"Fisher's Lagoon",
+ 		"San Andreas Sound",
+ 		"Fallen Tree",
+ 		"Palomino Creek",
+ 		"Fern Ridge",
+ 		"North Rock",
+ 		"The Panopticon"
+ 	},
+	["Flint County"]={
+ 		"Easter Bay Chemicals",
+ 		"Beacon Hill",
+ 		"Flint Intersection",
+ 		"Leafy Hollow",
+ 		"The Farm",
+ 		"Flint Range",
+ 		"Los Santos Inlet",
+ 		"Back o Beyond"
+ 	},
+	["Las Venturas"]={
+ 		"LVA Freight Depot",
+ 		"Blackfield Intersection",
+ 		"Starfish Casino",
+ 		"Linden Station",
+ 		"Yellow Bell Station",
+ 		"Julius Thruway West",
+ 		"Julius Thruway North",
+ 		"Redsands West",
+ 		"The Strip",
+ 		"Blackfield Chapel",
+ 		"Yellow Bell Gol Course",
+ 		"Las Venturas Airport",
+ 		"Julius Thruway East",
+ 		"Julius Thruway South",
+ 		"Roca Escalante",
+ 		"Redsands East",
+ 		"Greenglass College",
+ 		"Caligula's Palace",
+ 		"Pilgrim",
+ 		"The Clown's Pocket",
+ 		"Prickle Pine",
+ 		"Rockshore West",
+ 		"The Visage",
+ 		"The High Roller",
+ 		"Last Dime Motel",
+ 		"The Pink Swan",
+ 		"Linden Side",
+ 		"The Four Dragons Casino",
+ 		"Blackfield",
+ 		"Pirates in Men's Pants",
+ 		"Whitewood Estates",
+ 		"Royal Casino",
+ 		"K.A.C.C. Military Fuels",
+ 		"Harry Gold Parkway",
+ 		"Randolph Industrial Estate",
+ 		"Sobell Rail Yards",
+ 		"The Emerald Isle",
+ 		"Pilson Intersection",
+ 		"Spinybed",
+ 		"Rockshore East",
+ 		"The Camel's Toe",
+ 		"Old Venturas Strip",
+ 		"Creek",
+ 		"Come-A-Lot"
+	},
+	["Whetstone"]={
+ 		"Shady Cabin",
+ 		"Foster Valley",
+ 		"Shady Creeks",
+ 		"Angel Pine",
+ 		"Mount Chiliad"
+ 	}	
 }
 -- vk.com/donaks

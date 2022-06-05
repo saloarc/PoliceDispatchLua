@@ -1,8 +1,9 @@
-script_name('Police Dispatch')
+-- encoding: cyrillic (windows 1251)
+script_name('PD Radio')
 script_author('donaks')
 script_url("github.com/don-aks/PoliceDispatchLua/")
-script_version('2.1.2-patch')
-script_version_number(7)
+script_version('2.1.1-patch')
+script_version_number(6)
 script_properties("work-in-pause")
 
 require 'lib.moonloader'
@@ -10,7 +11,7 @@ local download_status = require('lib.moonloader').download_status
 local inicfg = require 'inicfg'
 local memory = require 'memory'
 
--- Р¤РёРєСЃ РґР»СЏ 027
+-- Фикс для 027
 package.path = package.path..";"..getWorkingDirectory().."\\?.lua"
 
 require 'config.PoliceDispatch.config'
@@ -30,15 +31,15 @@ end
 
 local v = getMoonloaderVersion()
 if v < 26 then
-	chatMessage("Р’Р°С€Р° РІРµСЂСЃРёСЏ moonloader РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ. РЈСЃС‚Р°РЅРѕРІРёС‚Рµ 026-beta РёР»Рё РІС‹С€Рµ.")
-	chatMessage("РЎСЃС‹Р»РєР° РЅР° СЃРєР°С‡РёРІР°РЅРёРµ Р±РѕР»РµРµ РЅРѕРІРѕР№ РІРµСЂСЃРёРё: https://www.blast.hk/threads/13305/")
+	chatMessage("Ваша версия moonloader не поддерживается. Установите 026-beta или выше.")
+	chatMessage("Ссылка на скачивание более новой версии: https://www.blast.hk/threads/13305/")
 	thisScript():unload()
 	return
 end
 
 local res, sampev = pcall(require, 'lib.samp.events')
 if not res then
-	chatMessage("РЈСЃС‚Р°РЅРѕРІРёС‚Рµ SAMP.LUA! {32B4FF}blast.hk/threads/59503{FFFFFF}.")
+	chatMessage("Установите SAMP.LUA! {32B4FF}blast.hk/threads/59503{FFFFFF}.")
 	thisScript():unload()
 	return
 end
@@ -48,9 +49,9 @@ function main()
 	while not isSampAvailable() do wait(100) end
 	while sampGetCurrentServerName() == 'SA-MP' do wait(100) end
 
-	-- РџРѕРґРіСЂСѓР·РєР° .json
+	-- Подгрузка .json
 	local f = io.open(PATH.config.."config.json", 'r')
-	-- СѓРґР°Р»СЏРµРј РєРѕРјРјРµРЅС‚Р°СЂРёРё
+	-- удаляем комментарии
 	local f_text = f:read('*a'):gsub("//[^\n]+", ''):gsub("/%*(.-)%*/", '')
 
 	res, CFG = pcall(decodeJson, f_text)
@@ -59,8 +60,8 @@ function main()
 		f:write(f_text)
 		f:close()
 
-		print("РўРµРєСЃС‚ .json С„Р°Р№Р»Р°, РєРѕС‚РѕСЂС‹Р№ С‡РёС‚Р°Р» СЃРєСЂРёРїС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ moonloader/config/PoliceDispatch/json_err.log")
-		chatMessage("РќРµ СѓРґР°Р»РѕСЃСЊ СЃС‡РёС‚Р°С‚СЊ .json С„Р°Р№Р»! РџРѕРґСЂРѕР±РЅРѕСЃС‚Рё РІ moonloader.log.")
+		print("Текст .json файла, который читал скрипт находится в moonloader/config/PoliceDispatch/json_err.log")
+		chatMessage("Не удалось считать .json файл! Подробности в moonloader.log.")
 
 		decodeJson(f_text)
 		thisScript():unload()
@@ -73,8 +74,8 @@ function main()
 		f:write(f_text)
 		f:close()
 
-		print("РўРµРєСЃС‚ .json С„Р°Р№Р»Р°, РєРѕС‚РѕСЂС‹Р№ С‡РёС‚Р°Р» СЃРєСЂРёРїС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ moonloader/config/PoliceDispatch/json_err.log")
-		chatMessage("РќРµ СѓРґР°Р»РѕСЃСЊ СЃС‡РёС‚Р°С‚СЊ .json С„Р°Р№Р»! РџРѕРґСЂРѕР±РЅРѕСЃС‚Рё РІ moonloader.log.")
+		print("Текст .json файла, который читал скрипт находится в moonloader/config/PoliceDispatch/json_err.log")
+		chatMessage("Не удалось считать .json файл! Подробности в moonloader.log.")
 		thisScript():unload()
 		return
 	end
@@ -85,11 +86,11 @@ function main()
 	local serverIP = ip..":"..port
 
 	local isFindServer = false
-	-- РџРѕРґР±РѕСЂ РЅСѓР¶РЅРѕРіРѕ СЃРµСЂРІРµСЂР°
+	-- Подбор нужного сервера
 	for _, server in ipairs(CFG.servers) do
 		if server.server.ip == serverIP or serverName:find(server.server.name, 1, true) then
-			-- СЃРѕРµРґРёРЅСЏРµРј РіР»Р°РІРЅС‹Р№ config Рё
-			-- РєРѕРЅС„РёРі СЃРµСЂРІРµСЂР° РґР»СЏ СѓРґРѕР±СЃС‚РІР°
+			-- соединяем главный config и
+			-- конфиг сервера для удобства
 			-- CFG -> config, call, find ...
 			local c = server
 			c.config = CFG.config
@@ -101,12 +102,12 @@ function main()
 	end
 
 	if not isFindServer then
-		print("Р”Р°РЅРЅРѕРіРѕ СЃРµСЂРІРµСЂР° РЅРµ РЅР°Р№РґРµРЅРѕ РІ РєРѕРЅС„РёРіРµ. Р—Р°РІРµСЂС€Р°СЋ СЂР°Р±РѕС‚Сѓ СЃРєСЂРёРїС‚Р°.")
+		print("Данного сервера не найдено в конфиге. Завершаю работу скрипта.")
 		thisScript():unload()
 		return
 	end
 
-	-- РџРѕРґРіСЂСѓР·РєР° .ini
+	-- Подгрузка .ini
 	INI = inicfg.load({
 		INI={
 			state=true,
@@ -119,8 +120,8 @@ function main()
 		}
 	}, PATH.ini)
 
-	-- РћР±РЅРѕРІР»РµРЅРёРµ РІРєР»СЋС‡РµРЅРёР№/РѕС‚РєР»СЋС‡РµРЅРёР№ 
-	-- РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… СЌРІРµРЅС‚РѕРІ
+	-- Обновление включений/отключений 
+	-- пользовательских эвентов
 	local tUser = {}
 	if CFG.user then
 		for i, it in ipairs(CFG.user) do
@@ -141,14 +142,14 @@ function main()
 	sampRegisterChatCommand('pdradio', mainMenu)
 
 	if INI.INI.state then
-		chatMessage("Р—Р°РіСЂСѓР¶РµРЅ. РЈРїСЂР°РІР»РµРЅРёРµ СЃРєСЂРёРїС‚РѕРј: {32B4FF}/pdradio{FFFFFF}. РђРІС‚РѕСЂ: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("Загружен. Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}vk.com/donaks{FFFFFF}.")
 	else
-		chatMessage("РћС‚РєР»СЋС‡РµРЅ! РЈРїСЂР°РІР»РµРЅРёРµ СЃРєСЂРёРїС‚РѕРј: {32B4FF}/pdradio{FFFFFF}. РђРІС‚РѕСЂ: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("Отключен! Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}vk.com/donaks{FFFFFF}.")
 	end
 
 	local radioVol = memory.read(0xBA6798, 1)
 	if INI.INI.state and radioVol == 0 then
-		chatMessage("Р’РЅРёРјР°РЅРёРµ! Р’РєР»СЋС‡РёС‚Рµ СЂР°РґРёРѕ РІ РЅР°СЃС‚СЂРѕР№РєР°С… РґР»СЏ С‚РѕРіРѕ, С‡С‚РѕР±С‹ СЃРєСЂРёРїС‚ Р·Р°СЂР°Р±РѕС‚Р°Р» Рё РїРµСЂРµР·Р°Р№РґРёС‚Рµ РІ РёРіСЂСѓ, РµСЃР»Рё Р·РІСѓРє РЅРµ РїРѕСЏРІРёС‚СЃСЏ.")
+		chatMessage("Внимание! Включите радио в настройках для того, чтобы скрипт заработал и перезайдите в игру, если звук не появится.")
 	end
 
 
@@ -171,8 +172,8 @@ end
 function sampev.onServerMessage(color, message)
 	if not INI or not CFG or not INI.INI.state then return true end
 
-	-- Р’ Р±РµСЃРє. С†РёРєР»Рµ РїРµСЂРµРјРµРЅРЅР°СЏ РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РїРѕР·Р¶Рµ, С‡РµРј РїСЂРёС…РѕРґСЏС‚
-	-- СЃРѕРѕР±С‰РµРЅРёСЏ РёР· С‡Р°С‚Р° РїРѕСЃР»Рµ РІС‹С…РѕРґР° РёР· РђР¤Рљ.
+	-- В беск. цикле переменная обновляется позже, чем приходят
+	-- сообщения из чата после выхода из АФК.
 	if not soundInAFK and TIME_ENTER_AFK and os.clock() - TIME_ENTER_AFK >= 120 then
 		return true
 	end
@@ -190,7 +191,7 @@ end
 function handleEvent(str, color)
 	local ev, pattern, markerId, idUserEvent = getEventInfo(str, color)
 	if not ev then
-		-- РѕС‡РёС‰Р°РµРј, РїРѕС‚РѕРјСѓ С‡С‚Рѕ РёРЅС„Р° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РЅР° СЃР»РµРґСѓСЋС‰РµР№ СЃС‚СЂРѕРєРµ
+		-- очищаем, потому что инфа должна быть на следующей строке
 		if #VARS > 0 then
 			VARS = {}
 		end
@@ -198,26 +199,26 @@ function handleEvent(str, color)
 	end
 
 	local vars = getVariablesFromMessage(str, pattern)
-	-- Р§РµРєР°РµРј РѕСЃС‚Р°Р»СЃСЏ Р»Рё РіР»РѕР±Р°Р»СЊРЅС‹Р№ VARS РѕС‚ РїСЂРµРґС‹РґСѓС‰РµРіРѕ РІС‹Р·РѕРІР°.
+	-- Чекаем остался ли глобальный VARS от предыдущего вызова.
 	vars = concatWithGlobalVars(vars, ev)
 
 	if ev == 'find' then
 		if INI.INI.findVolume == 0 then return false, 'volume' end
-		-- Р•СЃР»Рё РЅРµС‚ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕРіРѕ РїР°СЂР°РјРµС‚СЂР°
+		-- Если нет обязательного параметра
 		if not vars.area then
 			if markerId then
 				vars.area = getMarkerArea(markerId)
 				if not vars.area then
-					print("РРєРѕРЅРєР° РЅР° РєР°СЂС‚Рµ СЃ id "..markerId.." РІ СЌРІРµРЅС‚Рµ find РЅРµ РЅР°Р№РґРµРЅР°.")
+					print("Иконка на карте с id "..markerId.." в эвенте find не найдена.")
 					return false
 				end
 			elseif type(CFG.find.pattern) == 'table' and #CFG.find.pattern > 1 then
-				-- РћСЃС‚Р°РІР»СЏРµРј РґР°РЅРЅС‹Рµ РЅР° РїРѕС‚РѕРј
+				-- Оставляем данные на потом
 				VARS['find'] = vars
 				return true
 			else
-				print("РћС€РёР±РєР°! РџРµСЂРјРµРЅРЅР°СЏ @area РЅРµ СѓРєР°Р·Р°РЅР° РІ СЌРІРµРЅС‚Рµ find!")
-				print("РЈРєР°Р¶РёС‚Рµ markerId РёР»Рё @area РІ СЃРѕРѕР±С‰РµРЅРёРё Рё РїРµСЂРµР·Р°РіСЂСѓР·РёС‚Рµ СЃРєСЂРёРїС‚!")
+				print("Ошибка! Перменная @area не указана в эвенте find!")
+				print("Укажите markerId или @area в сообщении и перезагрузите скрипт!")
 				return false
 			end
 		end
@@ -227,7 +228,7 @@ function handleEvent(str, color)
 		if CFG.find.vehOnFoot and vars.vehname == CFG.find.vehOnFoot then
 			vars.onFoot = true
 		elseif vars.nick or vars.id then
-			-- Р‘РµСЂРµРј РёРЅС„Сѓ РѕР± Р°РІС‚Рѕ РёСЃС…РѕРґСЏ РёР· РґР°РЅРЅС‹С… РёРіСЂРѕРєР°
+			-- Берем инфу об авто исходя из данных игрока
 			local playerId = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
 			local playerInStream, playerHandle = sampGetCharHandleBySampPlayerId(playerId)
 
@@ -245,7 +246,7 @@ function handleEvent(str, color)
 				VARS['call'] = vars
 				return true
 			else
-				print("РћС€РёР±РєР°! РџРµСЂРµРјРµРЅРЅР°СЏ @area РёР»Рё @text РЅРµ СѓРєР°Р·Р°РЅР° РІ СЌРІРµРЅС‚Рµ call!")
+				print("Ошибка! Переменная @area или @text не указана в эвенте call!")
 				return false
 			end
 		end
@@ -276,7 +277,7 @@ function handleEvent(str, color)
 			end
 		end
 
-		-- РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ СЌРІРµРЅС‚С‹ РЅР° СЂР°РґРёРѕ
+		-- Пользовательские эвенты на радио
 		if 	ev == 'radio' and
 			type(CFG.radio.userMessages) == "table" and
 			#CFG.radio.userMessages > 0
@@ -290,26 +291,26 @@ function handleEvent(str, color)
 							sounds[i] = getAreaSoundPatch(getPlayerCity(PLAYER_PED))
 						elseif sound == "@areaplayer" then
 							sounds[i] = getAreaSoundPatch(getPlayerArea(PLAYER_PED))
-						elseif sound == "@randomtencode" then
+						elseif varname == "@randomtencode" then
 							sounds[i] = randomChoice(DISPATCH_SOUNDS.codes)
-						elseif sound == "@randomtencodewithin" then
+						elseif varname == "@randomtencodewithin" then
 							sounds[i] = randomChoice(DISPATCH_SOUNDS.codesWithIn)
-						elseif sound == "@randomarea" then
+						elseif varname == "@randomarea" then
 							sounds[i] = getAreaSoundPatch(randomChoice(AREAS)[1])
-						elseif sound == "@randomareaincityplayer" then
+						elseif varname == "@randomareaincityplayer" then
 							local city = getPlayerCity(PLAYER_PED)
 							if not city or city == "San Andreas" then
-								-- Р’ РїСЂРёРЅС†РёРїРµ СЂР°РЅРґРѕРјРЅС‹Р№ СЂР°Р№РѕРЅ
+								-- В принципе рандомный район
 								sounds[i] = getAreaSoundPatch(randomChoice(AREAS)[1])
 							else
 								sounds[i] = getAreaSoundPatch(
 									randomChoice(LIST_AREAS_IN_REGIONS[city])
 								)
 							end
-						elseif sound == "@codezero" then
-							sound = PATH.audio..PATH.code0..randomChoice(CODE_0_SOUNDS)
-						elseif sound == "@codeone" then
-							sound = PATH.audio..PATH.code1..randomChoice(CODE_1_SOUNDS)
+						elseif varname == "@codezero" then
+							sound = randomChoice(CODE_0_SOUNDS)
+						elseif varname == "@codeone" then
+							sound = randomChoice(CODE_1_SOUNDS)
 						else
 							sounds[i] = PATH.audio..sound:gsub('/', '\\')
 						end
@@ -338,7 +339,7 @@ function handleEvent(str, color)
 			lua_thread.create(playSounds, arrSounds, 'userVolume', CFG.user[idUserEvent].isPlayRadioOn)
 			return
 		else
-			print('РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РІ РјР°СЃСЃРёРІРµ "sounds" РІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРѕРј СЌРІРµРЅС‚Рµ '..CFG.user[idUserEvent].name..', Р»РёР±Рѕ РѕРЅ РЅРµ РѕРїСЂРµРґРµР»С‘РЅ.!')
+			print('Произошла ошибка в массиве "sounds" в пользовательском эвенте '..CFG.user[idUserEvent].name..', либо он не определён.!')
 			return false
 		end
 	end
@@ -347,11 +348,11 @@ function handleEvent(str, color)
 end
 
 function getVariablesFromMessage(message, pattern)
-	-- РІРѕР·РІСЂР°С‰Р°РµС‚ РјР°СЃСЃРёРІ {var: value}
+	-- возвращает массив {var: value}
 	local varsAndValues = {}
 	local vars = {}
 
-	-- РёС‰РµРј РІСЃРµ @var
+	-- ищем все @var
 	local start = 1
 	local var
 	for _ = 1, #message do
@@ -377,7 +378,7 @@ function getVariablesFromMessage(message, pattern)
 		varsAndValues[var] = message:match(patternWithoutVar)
 
 		if not varsAndValues[var] then
-			print("Warning: РќРµ РЅР°Р№РґРµРЅР° РїРµСЂРµРјРµРЅРЅР°СЏ @"..var.." РІ СЃС‚СЂРѕРєРµ \""..message.."\"!")
+			print("Warning: Не найдена переменная @"..var.." в строке \""..message.."\"!")
 		end
 	end
 
@@ -407,7 +408,7 @@ function getEventInfo(str, color)
 end
 
 function getEventAndPattern(str, color)
-	-- РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ user СЌРІРµРЅС‚С‹ РїСЂРѕРІРµСЂСЏСЋС‚СЃСЏ СЃР°РјС‹РјРё РїРµСЂРІС‹РјРё, РµСЃР»Рё РЅРµ Р·Р°РґР°РЅРѕ РёРЅР°С‡Рµ.
+	-- По умолчанию user эвенты проверяются самыми первыми, если не задано иначе.
 	if not CFG.userNotPriority then
 		local userPattern, idUserEvent = getUserPatternAndId(str, color)
 		if userPattern then
@@ -425,7 +426,6 @@ function getEventAndPattern(str, color)
 
 			local isColor = true
 			for _, col in pairs(colors) do
-				col = tonumber(col) or tonumber("0x"..col)
 				if col ~= tonumber(color) then
 					isColor = false
 				else
@@ -474,7 +474,6 @@ function getUserPatternAndId(str, color)
 
 			local isColor = true
 			for _, col in pairs(colors) do
-				col = tonumber(col) or tonumber("0x"..col)
 				if col ~= tonumber(color) then
 					isColor = false
 				else
@@ -515,8 +514,8 @@ function parceSounds(idUserEvent, vars)
 	for i, sound in ipairs(CFGuser.sounds) do
 
 		if type(sound) ~= 'string' then
-			print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-			print("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ Р·РІСѓРєРё РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ РјРµР¶РґСѓ РєР°РІС‹С‡РєР°РјРё!")
+			print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+			print("Пользовательские звуки должны быть между кавычками!")
 			return false
 
 		-- DISP.key1.key2
@@ -534,16 +533,16 @@ function parceSounds(idUserEvent, vars)
 				end
 
 				if not newSound then
-					print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-					print("Р—РІСѓРє РЅРµ РЅР°Р№РґРµРЅ! РЈР±РµРґРёС‚РµСЃСЊ С‡С‚Рѕ РІС‹ РІСЃРµ РІРµСЂРЅРѕ РЅР°РїРёСЃР°Р»Рё.")
-					print("РЎСЂР°РІРЅРёС‚Рµ СЃРІРѕРё РєР»СЋС‡Рё СЃ РєР»СЋС‡Р°РјРё РІ РїРµСЂРµРјРµРЅРЅРѕР№ DISPATCH_SOUNDS РІ С„Р°Р№Р»Рµ config.lua.")
-					print("Р РµРіРёСЃС‚СЂ СЃРёРјРІРѕР»РѕРІ РёРјРµРµС‚ Р·РЅР°С‡РµРЅРёРµ!")
+					print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+					print("Звук не найден! Убедитесь что вы все верно написали.")
+					print("Сравните свои ключи с ключами в переменной DISPATCH_SOUNDS в файле config.lua.")
+					print("Регистр символов имеет значение!")
 					return false
 				end
 				sound = newSound
 			else
-				print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-				print("РЈРєР°Р·С‹РІР°С‚СЊ Р·РІСѓРє РЅСѓР¶РЅРѕ: DISP.key1.key2. РџСЂРёРјРµСЂ: DISP.words.headTo10.")
+				print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+				print("Указывать звук нужно: DISP.key1.key2. Пример: DISP.words.headTo10.")
 				return false
 			end
 
@@ -551,13 +550,13 @@ function parceSounds(idUserEvent, vars)
 		elseif sound:find("^@") then
 			local varname = sound:match("@([%a_]+)")
 			if not varname then
-				print("РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РІ Р·РІСѓРєРµ "..tostring(sound).." (в„–"..i..")"..
-					" РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-				print("РџРµСЂРµРјРµРЅРЅС‹Рµ РїРёС€СѓС‚СЃСЏ С‚РѕР»СЊРєРѕ Р»Р°С‚РёРЅРёС†РµР№ РёР»Рё РЅРёР¶РЅРёРј РїРѕРґС‡РµСЂРєРёРІР°РЅРёРµРј!")
+				print("Некорректная переменная в звуке "..tostring(sound).." (№"..i..")"..
+					" в user эвенте '"..CFGuser.name.."'!")
+				print("Переменные пишутся только латиницей или нижним подчеркиванием!")
 				return false
 			end
 
-			-- Р•СЃР»Рё РїРµСЂРµРјРµРЅРЅРѕР№ РЅРµС‚ РІ СЃС‚СЂРѕРєРµ.
+			-- Если переменной нет в строке.
 			if 	(not vars[varname]) and 
 				(not (CFGuser.vars and CFGuser.vars[varname])) and
 				(varname ~= 'veh' or not (vars.vehname or vars.vehid))
@@ -566,15 +565,15 @@ function parceSounds(idUserEvent, vars)
 					local markerId = CFGuser.markerId
 					local area = getMarkerArea(markerId)
 					if not area then
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РРєРѕРЅРєР° РЅР° РєР°СЂС‚Рµ СЃ id "..markerId.." РІ СЌРІРµРЅС‚Рµ user РЅРµ РЅР°Р№РґРµРЅР°.")
+						print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("Иконка на карте с id "..markerId.." в эвенте user не найдена.")
 						return false
 					end
 
 					local newSound = getAreaSoundPatch(area)
 					if not newSound then
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("@area РЅРµ РЅР°Р№РґРµРЅРѕ.")
+						print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("@area не найдено.")
 						return false
 					end
 					sound = newSound
@@ -589,18 +588,18 @@ function parceSounds(idUserEvent, vars)
 							end
 							sound = getVehSound(vars.vehid)
 						else
-							print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-							print("РџРµСЂРµРјРµРЅРЅРѕР№ @vehname РёР»Рё @vehid РЅРµС‚ РІ СЃС‚СЂРѕРєРµ!")
-							print("Р РёРіСЂРѕРє, СѓРєР°Р·Р°РЅРЅС‹Р№ РІ РїРµСЂРµРјРµРЅРЅС‹С… @id РёР»Рё @nick РІРЅРµ Р·РѕРЅРµ СЃС‚СЂРёРјР°!")
+							print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+							print("Переменной @vehname или @vehid нет в строке!")
+							print("И игрок, указанный в переменных @id или @nick вне зоне стрима!")
 							return false
 						end
 					else
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РџРµСЂРµРјРµРЅРЅРѕР№ @vehname РёР»Рё @vehid РЅРµС‚ РІ СЃС‚СЂРѕРєРµ!")
+						print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("Переменной @vehname или @vehid нет в строке!")
 						return false
 					end
 				elseif varname == 'suspectveh' then
-					-- РљРѕРїРёРїР°СЃС‚.
+					-- Копипаст.
 					if vars.id or vars.nick then
 						vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
 						res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
@@ -612,8 +611,8 @@ function parceSounds(idUserEvent, vars)
 							end
 							sound = getVehSound(vars.vehid)
 						else
-							-- РҐРђРҐРђРҐРђРҐРҐРђРҐРђРҐРђРҐРђРҐРђРҐРҐРђ
-							-- Р›Р°РґРЅРѕ.
+							-- ХАХАХАХХАХАХАХАХАХХА
+							-- Ладно.
 							local playerInStream, playerHandle
 
 							local _, playerId = sampGetPlayerIdByCharHandle(PLAYER_PED)
@@ -624,7 +623,7 @@ function parceSounds(idUserEvent, vars)
 							end
 
 							if not playerInStream then
-								print("Warning @suspectveh: РРіСЂРѕРє РІРЅРµ Р·РѕРЅРµ СЃС‚СЂРёРјР° РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
+								print("Warning @suspectveh: Игрок вне зоне стрима в user эвенте '"..CFGuser.name.."'!")
 								sound = nil
 							else
 								table.insert(arrSounds, DISPATCH_SOUNDS.suspect.suspect1)
@@ -632,16 +631,16 @@ function parceSounds(idUserEvent, vars)
 							end
 						end
 					else
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РџРµСЂРµРјРµРЅРЅРѕР№ @vehname РёР»Рё @vehid РЅРµС‚ РІ СЃС‚СЂРѕРєРµ!")
+						print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("Переменной @vehname или @vehid нет в строке!")
 						return false
 					end
 				elseif varname == "cityplayer" then
 					local city = getPlayerCity(PLAYER_PED)
 					if not city then
 						local x, y, z = getCharCoordinates(PLAYER_PED)
-						print("РћС€РёР±РєР°! РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РіРѕСЂРѕРґ РёРіСЂРѕРєР°.")
-						print("РљРѕРѕСЂРґРёРЅР°С‚С‹: x = "..x..", y = "..y..", z = "..z)
+						print("Ошибка! Не удалось определить город игрока.")
+						print("Координаты: x = "..x..", y = "..y..", z = "..z)
 						return false
 					end
 					sound = getAreaSoundPatch(city)
@@ -649,8 +648,8 @@ function parceSounds(idUserEvent, vars)
 					local area = getPlayerArea(PLAYER_PED)
 					if not area then
 						local x, y, z = getCharCoordinates(PLAYER_PED)
-						print("РћС€РёР±РєР°! РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ СЂР°Р№РѕРЅ РёРіСЂРѕРєР°.")
-						print("РљРѕРѕСЂРґРёРЅР°С‚С‹: x = "..x..", y = "..y..", z = "..z)
+						print("Ошибка! Не удалось определить район игрока.")
+						print("Координаты: x = "..x..", y = "..y..", z = "..z)
 						return false
 					end
 					sound = getAreaSoundPatch(area)
@@ -663,7 +662,7 @@ function parceSounds(idUserEvent, vars)
 				elseif varname == "randomareaincityplayer" then
 					local city = getPlayerCity(PLAYER_PED)
 					if not city or city == "San Andreas" then
-						-- Р’ РїСЂРёРЅС†РёРїРµ СЂР°РЅРґРѕРјРЅС‹Р№ СЂР°Р№РѕРЅ
+						-- В принципе рандомный район
 						sound = getAreaSoundPatch(randomChoice(AREAS)[1])
 					else
 						sound = getAreaSoundPatch(
@@ -671,55 +670,55 @@ function parceSounds(idUserEvent, vars)
 						)
 					end
 				elseif varname == "codezero" then
-					sound = PATH.audio..PATH.code0..randomChoice(CODE_0_SOUNDS)
+					sound = randomChoice(CODE_0_SOUNDS)
 				elseif varname == 'codeone' then
-					sound = rPATH.audio..PATH.code1..randomChoice(CODE_1_SOUNDS)
+					sound = randomChoice(CODE_1_SOUNDS)
 				else
-					print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-					print("РџРµСЂРµРјРµРЅРЅРѕР№ @"..varname.." РЅРµС‚ РІ СЃС‚СЂРѕРєРµ!")
+					print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+					print("Переменной @"..varname.." нет в строке!")
 					return false
 				end
 
-			-- Р•СЃС‚СЊ РєРѕРЅСЃС‚СЂСѓРєС†РёСЏ СЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРјРё Р·Р°РјРµРЅР°РјРё РїРµСЂРµРјРµРЅРЅС‹С…
+			-- Есть конструкция с пользовательскими заменами переменных
 			elseif
 				CFGuser.vars and 
 				(
 					(CFGuser.vars[varname]) or (
 						varname == 'veh' and
-						-- РґР»СЏ veh РґСЂСѓРіРёРµ РїРµСЂРµРјРµРЅРЅС‹Рµ
+						-- для veh другие переменные
 						(CFGuser.vars['vehname'] or CFGuser.vars['vehid'])
 					)
 				)
 			then
 				if varname ~= 'veh' then
-					-- Р—Р°РјРµРЅРёС‚СЊ, РµСЃР»Рё РЅСѓР¶РЅРѕ Р±СѓРґРµС‚ РЅРµ СѓС‡РёС‚С‹РІР°С‚СЊ СЂРµРіРёСЃС‚СЂ
-					-- РІ Р·РЅР°С‡РµРЅРёСЏС… РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… РїРµСЂРµРјРµРЅРЅС‹С….
+					-- Заменить, если нужно будет не учитывать регистр
+					-- в значениях пользовательских переменных.
 					newSound = CFGuser.vars[varname] [vars[varname]]
 					if newSound then
 						sound = newSound
 					else
-						print("Warning! Р’ vars."..varname.." РЅРµС‚ Р·РЅР°С‡РµРЅРёСЏ "..vars[varname]..". "..
-							"РџРµСЂРµРјРµРЅРЅР°СЏ РЅРµ РїРµСЂРµР·Р°РїРёСЃР°Р»Р°СЃСЊ.")
+						print("Warning! В vars."..varname.." нет значения "..vars[varname]..". "..
+							"Переменная не перезаписалась.")
 					end
 				end
 
-				-- РћР±СЂР°Р±РѕС‚РєР° Р·РЅР°С‡РµРЅРёСЏ РїРµСЂРµРјРµРЅРЅС‹С… РєР°Рє Р·РІСѓРєР°.
-				-- РџРѕ СЃСѓС‚Рё С‚Р° Р¶Рµ С„СѓРЅРєС†РёСЏ РєР°Рє РІ else РЅРёР¶Рµ.
-				-- РќСѓР¶РЅРѕ СѓРїСЂРѕСЃС‚РёС‚СЊ.
-				-- Рђ С‚Р°РєР¶Рµ РїСЂРѕС‚РµСЃС‚РёС‚СЊ. Р—Р°РіР°РґРєР° РѕС‚ Р–Р°РєР° Р¤СЂРµСЃРєРѕ.
+				-- Обработка значения переменных как звука.
+				-- По сути та же функция как в else ниже.
+				-- Нужно упростить.
+				-- А также протестить. Загадка от Жака Фреско.
 				if varname == 'area' then
 					local area = sound
 					sound = getAreaSoundPatch(area)
 					if not sound then
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '@area' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РџРѕСЃР»Рµ Р·Р°РјРµРЅС‹ РЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєСѓСЋ РєРѕРЅСЃС‚СЂСѓРєС†РёСЋ, СЂР°Р№РѕРЅ "..area.." РЅРµ Р±С‹Р» РЅР°Р№РґРµРЅ.")
+						print("Ошибка в звуке '@area' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("После замены на пользовательскую конструкцию, район "..area.." не был найден.")
 						return false
 					end
 				elseif varname == 'veh' then
 					if vars['vehname'] or vars['vehid'] then
-						-- РҐРј... РљР°Рє Р¶Рµ СѓРїСЂРѕСЃС‚РёС‚СЊ.
-						-- Р—Р°РіР°РґРєР° РѕС‚ Р¶Р°РєР° Р¤СЂРµСЃРєРѕ.
-						-- Рђ РЅРµ РїРѕС…СѓР№ Р»Рё?
+						-- Хм... Как же упростить.
+						-- Загадка от жака Фреско.
+						-- А не похуй ли?
 						if CFGuser.vars['vehname'] then
 							local newSound = CFGuser.vars.vehname[vars.vehname]
 							if newSound then
@@ -737,11 +736,11 @@ function parceSounds(idUserEvent, vars)
 						sound = getVehSound(vars.vehid)
 
 						if not sound then
-							print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '@veh' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
+							print("Ошибка в звуке '@veh' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
 							if vars.vehid then
-								print("РђРІС‚РѕРјРѕР±РёР»СЊ СЃ id '"..tostring(vars.vehid).."' РЅРµ Р±С‹Р» РЅР°Р№РґРµРЅ!")
+								print("Автомобиль с id '"..tostring(vars.vehid).."' не был найден!")
 							elseif vars.vehname then
-								print("РђРІС‚РѕРјРѕР±РёР»СЊ СЃ РЅР°Р·РІР°РЅРёРµРј '"..tostring(vars.vehname).."' РЅРµ Р±С‹Р» РЅР°Р№РґРµРЅ!")
+								print("Автомобиль с названием '"..tostring(vars.vehname).."' не был найден!")
 							end
 							return false
 						end
@@ -749,7 +748,7 @@ function parceSounds(idUserEvent, vars)
 						if vars.vehname and vars.vehname == CFGuser.vehOnFoot then
 							sound = DISPATCH_SOUNDS.suspect.onFoot
 						elseif vars.id or vars.nick then
-							-- Р‘РµСЂРµРј РёРЅС„Сѓ РёР· РёРіСЂРѕРєР°, РµСЃР»Рё С‚РѕС‚ РІ СЃС‚СЂРёРјРµ.
+							-- Берем инфу из игрока, если тот в стриме.
 							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
 							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
 							if res then
@@ -761,14 +760,14 @@ function parceSounds(idUserEvent, vars)
 							end
 						end
 					else
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '@area' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РџРµСЂРµРјРµРЅРЅРѕР№ @vehname РёР»Рё @vehid РЅРµС‚ РІ СЃС‚СЂРѕРєРµ!")
+						print("Ошибка в звуке '@area' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("Переменной @vehname или @vehid нет в строке!")
 						return false
 					end
 				else
 					if type(sound) ~= 'string' then
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..tostring(sound).."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("Р—РЅР°С‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ СЃС‚СЂРѕРєР°!")
+						print("Ошибка в звуке '"..tostring(sound).."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+						print("Значение переменной должна быть строка!")
 						return false
 					elseif sound:find("^DISP%.") then
 						local s = sound:split('%.')
@@ -783,10 +782,10 @@ function parceSounds(idUserEvent, vars)
 						end
 
 						if not newSound then
-							print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '"..sound.."' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-							print("Р—РІСѓРє РЅРµ РЅР°Р№РґРµРЅ! РЈР±РµРґРёС‚РµСЃСЊ С‡С‚Рѕ РІС‹ РІСЃРµ РІРµСЂРЅРѕ РЅР°РїРёСЃР°Р»Рё.")
-							print("РЎСЂР°РІРЅРёС‚Рµ СЃРІРѕРё РєР»СЋС‡Рё СЃ РєР»СЋС‡Р°РјРё РІ РїРµСЂРµРјРµРЅРЅРѕР№ DISPATCH_SOUNDS РІ С„Р°Р№Р»Рµ config.lua.")
-							print("Р РµРіРёСЃС‚СЂ СЃРёРјРІРѕР»РѕРІ РёРјРµРµС‚ Р·РЅР°С‡РµРЅРёРµ!")
+							print("Ошибка в звуке '"..sound.."' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
+							print("Звук не найден! Убедитесь что вы все верно написали.")
+							print("Сравните свои ключи с ключами в переменной DISPATCH_SOUNDS в файле config.lua.")
+							print("Регистр символов имеет значение!")
 							return false
 						end
 						sound = newSound
@@ -799,23 +798,23 @@ function parceSounds(idUserEvent, vars)
 				if varname == 'area' then
 					sound = getAreaSoundPatch(vars.area)
 					if not sound then
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ в„–"..i.." РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("@area РЅРµ РЅР°Р№РґРµРЅРѕ.")
+						print("Ошибка в звуке №"..i.." в user эвенте '"..CFGuser.name.."'!")
+						print("@area не найдено.")
 						return false
 					end
 
 				elseif varname == 'veh' then
-					-- РџРѕС‡РµРјСѓ РЅРµ Р±РµСЂРµС‚СЃСЏ РёРЅС„Р° РёР· РІРѕР·РјРѕР¶РЅРѕРіРѕ РёРіСЂРѕРєР°
-					-- РІ Р·РѕРЅРµ СЃС‚СЂРёРјР°
+					-- Почему не берется инфа из возможного игрока
+					-- в зоне стрима
 					if vars['vehname'] or vars['vehid'] then
 						vars.vehid = vars.vehid or vars.vehname and getCarModelByName(vars.vehname)
 						sound = getVehSound(vars.vehid)
 						if not sound then
-							print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ '@veh' (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
+							print("Ошибка в звуке '@veh' (№"..i..") в user эвенте '"..CFGuser.name.."'!")
 							if vars.vehid then
-								print("РђРІС‚РѕРјРѕР±РёР»СЊ СЃ id '"..tostring(vars.vehid).."' РЅРµ Р±С‹Р» РЅР°Р№РґРµРЅ!")
+								print("Автомобиль с id '"..tostring(vars.vehid).."' не был найден!")
 							elseif vars.vehname then
-								print("РђРІС‚РѕРјРѕР±РёР»СЊ СЃ РЅР°Р·РІР°РЅРёРµРј '"..tostring(vars.vehname).."' РЅРµ Р±С‹Р» РЅР°Р№РґРµРЅ!")
+								print("Автомобиль с названием '"..tostring(vars.vehname).."' не был найден!")
 							end
 							return false
 						end
@@ -823,7 +822,7 @@ function parceSounds(idUserEvent, vars)
 						if CFGuser.veh and vars.vehname == CFGuser.vehOnFoot then
 							sound = DISPATCH_SOUNDS.suspect.onFoot
 						elseif vars.id or vars.nick then
-							-- Р‘РµСЂРµРј РёРЅС„Сѓ РёР· РёРіСЂРѕРєР°, РµСЃР»Рё С‚РѕС‚ РІ СЃС‚СЂРёРјРµ.
+							-- Берем инфу из игрока, если тот в стриме.
 							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
 							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
 
@@ -835,21 +834,21 @@ function parceSounds(idUserEvent, vars)
 							end
 						end
 					else
-						print("РћС€РёР±РєР° РІ Р·РІСѓРєРµ в„–"..i.." РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
-						print("РќРµРІРѕР·РјРѕР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ Р·РІСѓРє Р°РІС‚РѕРјРѕР±РёР»СЏ, С‚Р°Рє РєР°Рє ...")
-						print("... РІ РїР°С‚С‚РµСЂРЅРµ РЅРµ СѓРєР°Р·Р°РЅР° РЅРё @vehname, РЅРё @vehid!")
+						print("Ошибка в звуке №"..i.." в user эвенте '"..CFGuser.name.."'!")
+						print("Невозможно получить звук автомобиля, так как ...")
+						print("... в паттерне не указана ни @vehname, ни @vehid!")
 						return false
 					end
 				else
 					sound = vars[varname]
 				end
 			end
-		-- РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ РїСѓС‚СЊ
+		-- относительный путь
 		elseif sound:find("%.") then
 			sound = sound:gsub("/", "\\")
 			sound = PATH.audio..sound
 		else
-			print("РќРµРёР·РІРµСЃС‚РЅС‹Р№ Р·РІСѓРє "..sound.." (в„–"..i..") РІ user СЌРІРµРЅС‚Рµ '"..CFGuser.name.."'!")
+			print("Неизвестный звук "..sound.." (№"..i..") в user эвенте '"..CFGuser.name.."'!")
 			return false
 		end
 
@@ -875,7 +874,7 @@ function playDispatch(event, vars)
 		}, 'callsVolume', true)
 
 	elseif event == 'gangActivity' then
-		-- С„СѓРЅРєС†РёСЏ РґР»СЏ С„Р°Р№Р»РѕРІ С‚РёРїР° Jefferson2.
+		-- функция для файлов типа Jefferson2.
 		local msgs = {}
 		for _, fname in ipairs(GANG_ACTIVITY_SOUNDS) do
 			if fname:find(vars.area, 1, true) then
@@ -903,15 +902,15 @@ function playDispatch(event, vars)
 		}, 'findVolume', true)
 
 	elseif event == 'code1' then
-		lua_thread.create(playSounds, PATH.audio..PATH.code1..randomChoice(CODE_1_SOUNDS), 'radioVolume')
+		lua_thread.create(playSounds, randomChoice(CODE_1_SOUNDS), 'radioVolume')
 
 	elseif event == 'code0' then
-		lua_thread.create(playSounds, PATH.audio..PATH.code0..randomChoice(CODE_0_SOUNDS), 'radioVolume')
+		lua_thread.create(playSounds, randomChoice(CODE_0_SOUNDS), 'radioVolume')
 	end
 end
 
 function playSounds(array, volume, isPlayRadioOn)
-	-- Р·Р°РїСѓСЃРє РІ lua_thread
+	-- запуск в lua_thread
 	array = toTable(array)
 
 	while DISP_IS_SPEAK do wait(0) if IS_CLEAN_QUEUE then return end end
@@ -943,12 +942,12 @@ function playSounds(array, volume, isPlayRadioOn)
 end
 
 function play(sound, volume)
-	--[[С„СѓРЅРєС†РёСЏ РїСЂРѕРёРіСЂС‹РІР°РµС‚ Р·РІСѓРє sound СЃ РіСЂРѕРјРєРѕСЃС‚СЊСЋ volume
-	РµСЃР»Рё РїР°СЂР°РјРµС‚СЂ СЃС‚СЂРѕРєР°, С‚Рѕ РѕРЅ Р±РµСЂРµС‚ РіСЂРѕРјРєРѕСЃС‚СЊ РёР· РёРЅРё С„Р°Р№Р»Р°
-	Р° РІРѕР·РІСЂР°С‰Р°РµС‚ РґР»РёРЅРЅСѓ РґР°РЅРЅРѕРіРѕ Р·РІСѓРєР° РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С…, 
-	СЃРїРµС†РёР°Р»СЊРЅРѕ РґР»СЏ С„СѓРЅРєС†РёРё wait(), 
-	С‡С‚РѕР±С‹ СЃР»РµРґСѓСЋС‰РёР№ Р·РІСѓРє РІ РєРѕРґРµ РїСЂРѕРёРіСЂР°Р»СЃСЏ РїРѕСЃР»Рµ СЌС‚РѕРіРѕ.
-	РџРѕР»СѓС‡Р°РµС‚СЃСЏ: wait(play(loadAudioStream('find.mp3'), 'find'))]]
+	--[[функция проигрывает звук sound с громкостью volume
+	если параметр строка, то он берет громкость из ини файла
+	а возвращает длинну данного звука в миллисекундах, 
+	специально для функции wait(), 
+	чтобы следующий звук в коде проигрался после этого.
+	Получается: wait(play(loadAudioStream('find.mp3'), 'find'))]]
 
 	if tonumber(volume) then
 		volume = tonumber(volume)
@@ -1009,7 +1008,7 @@ function getMarkerArea(markerId)
 		end
 	end
 	if not markerPos then
-		print("РќРµ РЅР°Р№РґРµРЅР° РїРѕР·РёС†РёСЏ РјР°СЂРєРµСЂР° СЃ id "..markerId..'!')
+		print("Не найдена позиция маркера с id "..markerId..'!')
 		return false 
 	end
 
@@ -1058,7 +1057,7 @@ function getCarModelByName(nameModel)
 			return id
 		end
 	end
-	-- РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ
+	-- пользовательские
 	if CFG.serverConfig then
 		for name, id in pairs(CFG.serverConfig.vehNames) do
 			if name:tolower() == nameModel:tolower() then
@@ -1079,7 +1078,7 @@ function getVehSound(modelCarId)
 end
 
 function getCarColorSound(color)
-	-- Р’РѕР·РІСЂР°С‰Р°РµС‚ РјР°СЃСЃРёРІ
+	-- Возвращает массив
 	if type(color) == 'string' then
 		return {loadAudioStream(PATH.audio..PATH.colors..color..'.wav')}
 	end
@@ -1088,7 +1087,7 @@ function getCarColorSound(color)
 	local sounds = {}
 	local firstColor
 
-	-- Р•СЃР»Рё РґРІРѕР№РЅРѕР№ С†РІРµС‚
+	-- Если двойной цвет
 	for _, c in ipairs(color) do
 		if c ~= "Not sound" then
 
@@ -1097,7 +1096,7 @@ function getCarColorSound(color)
 					if c == idColor then
 						local t = colorName:split(" ")
 						if t[#t] ~= firstColor then
-							-- Р•СЃС‚СЊ light/dark
+							-- Есть light/dark
 							if #t == 2 then
 								sounds[#sounds+1] = loadAudioStream(
 									PATH.audio..PATH.colors..t[1]..'.wav'
@@ -1128,7 +1127,7 @@ function getAreaSoundPatch(area)
 	else
 		local newArea = AREAS_NOT_VOICED[area:tolower()]
 
-		-- РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ
+		-- пользовательские
 		if not newArea and CFG.serverConfig and CFG.serverConfig.areas then
 			for name, ar in pairs(CFG.serverConfig.areas) do
 				if name:tolower() == area:tolower() then
@@ -1140,7 +1139,7 @@ function getAreaSoundPatch(area)
 		if newArea then
 			return getAreaSoundPatch(newArea)
 		else
-			print("Р Р°Р№РѕРЅР° \""..area.."\" РЅРµ РЅР°Р№РґРµРЅРѕ.")
+			print("Района \""..area.."\" не найдено.")
 			return false
 		end
 	end
@@ -1151,7 +1150,7 @@ end
 
 -- ICONS ON MAP --
 
--- РёРєРѕРЅРєР° РЅР° РєР°СЂС‚Рµ (id: СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№)
+-- иконка на карте (id: стандартный)
 function sampev.onSetMapIcon(id, pos, typeIcon, color, style)
 	-- print("onSetMapIcon id="..id..", type="..typeIcon..", ("..pos.x..", "..pos.y..")")
 	MAP_ICONS[#MAP_ICONS+1] = {
@@ -1171,10 +1170,10 @@ function sampev.onRemoveMapIcon(id)
 end
 
 
--- РєСЂР°СЃРЅР°СЏ РјРµС‚РєР° (id: 1)
+-- красная метка (id: 1)
 function sampev.onSetCheckpoint(pos, radius)
 	-- print("onSetCheckpoint ("..pos.x..", "..pos.y..")")
-	-- РЈРґР°Р»СЏРµРј РїСЂРµРґС‹РґСѓС‰СѓСЋ РјРµС‚РєСѓ
+	-- Удаляем предыдущую метку
 	for i, icon in ipairs(MAP_ICONS) do
 		if icon.id == 'check' then
 			MAP_ICONS[i] = nil
@@ -1198,10 +1197,10 @@ function sampev.onDisableCheckpoint()
 	end
 end
 
--- РіРѕРЅРѕС‡РЅС‹Р№ С‡РµРєРїРѕРёРЅС‚ (id: 2)
+-- гоночный чекпоинт (id: 2)
 function sampev.onSetRaceCheckpoint(type, pos, nextPos, size)
 	-- print("onSetRaceCheckpoint ("..pos.x..", "..pos.y..")")
-	-- РЈРґР°Р»СЏРµРј РїСЂРµРґС‹РґСѓС‰СѓСЋ РјРµС‚РєСѓ
+	-- Удаляем предыдущую метку
 	for i, icon in ipairs(MAP_ICONS) do
 		if icon.id == 'race' then
 			MAP_ICONS[i] = nil
@@ -1268,7 +1267,7 @@ function esc(s)
 end
 
 function randomChoice(arr)
-	-- РІРѕР·РІСЂР°С‰Р°РµС‚ СЃР»СѓС‡Р°Р№РЅС‹Р№ СЌР»РµРјРµРЅС‚ arr
+	-- возвращает случайный элемент arr
 	if #arr == 0 then
 		local iter = 0
 		newArr = {}
@@ -1360,8 +1359,8 @@ function checkUpdates()
 
 					if versNum and tonumber(versNum) > thisScript().version_num then
 						local versStr = string.match(f_text, "script_version%s*%([\"'](.-)[\"']%)")
-						chatMessage("Р’РЅРёРјР°РЅРёРµ! Р”РѕСЃС‚СѓРїРЅРѕ РѕР±РЅРѕРІР»РµРЅРёРµ {32B4FF}v"..versStr..'{ffffff}.')
-						chatMessage("Р”Р»СЏ РїРµСЂРµС…РѕРґР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ СЃРєСЂРёРїС‚Р° РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РјРµРЅСЋ {32B4FF}/pdradio{ffffff}.")
+						chatMessage("Внимание! Доступно обновление {32B4FF}v"..versStr..'{ffffff}.')
+						chatMessage("Для перехода на страницу скрипта используйте меню {32B4FF}/pdradio{ffffff}.")
 					end
 				end
 			end
@@ -1371,33 +1370,33 @@ end
 
 function mainMenu()
 	local text = string.format(
-		"РЎРєСЂРёРїС‚:\t%s\n".. -- 0
-		"РџСЂРѕРІРµСЂРєР° РѕР±РЅРѕРІР»РµРЅРёР№\t%s\n".. -- 1
-		"Р’РѕСЃРїСЂРѕРёР·РІРѕРґРёС‚СЊ РІ РђР¤Рљ\t%s\n".. -- 2
-		"Р“СЂРѕРјРєРѕСЃС‚СЊ {FF4400}РІС‹Р·РѕРІРѕРІ 911:\t{FFFFFF}%s\n".. -- 3
-		"Р“СЂРѕРјРєРѕСЃС‚СЊ {ABCDEF}/find:\t{FFFFFF}%s\n".. -- 4
-		"Р“СЂРѕРјРєРѕСЃС‚СЊ {8D8DFF}/r:\t{FFFFFF}%s\n".. -- 5
-		"Р“СЂРѕРјРєРѕСЃС‚СЊ {66DDAA}user-СЌРІРµРЅС‚РѕРІ:\t{FFFFFF}%s\n".. -- 6
+		"Скрипт:\t%s\n".. -- 0
+		"Проверка обновлений\t%s\n".. -- 1
+		"Воспроизводить в АФК\t%s\n".. -- 2
+		"Громкость {FF4400}вызовов 911:\t{FFFFFF}%s\n".. -- 3
+		"Громкость {ABCDEF}/find:\t{FFFFFF}%s\n".. -- 4
+		"Громкость {8D8DFF}/r:\t{FFFFFF}%s\n".. -- 5
+		"Громкость {66DDAA}user-эвентов:\t{FFFFFF}%s\n".. -- 6
 		"  \n".. -- 7
-		"РћС‚РєР»СЋС‡РµРЅРёРµ {66DDAA}user-СЌРІРµРЅС‚РѕРІ\n".. -- 8
-		"РџСЂРѕРІРµСЂРєР° РїР°С‚С‚РµСЂРЅР°\n".. -- 9
-		"РћС‡РёСЃС‚РёС‚СЊ РѕС‡РµСЂРµРґСЊ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёСЏ\n".. -- 10
+		"Отключение {66DDAA}user-эвентов\n".. -- 8
+		"Проверка паттерна\n".. -- 9
+		"Очистить очередь воспроизведения\n".. -- 10
 		"  \n".. -- 11
-		"РЎС‚СЂР°РЅРёС†Р° СЃРєСЂРёРїС‚Р°", -- 12
+		"Страница скрипта", -- 12
 
-		(INI.INI.state and "{21C90E}Р’РєР»." or '{C91A14}РћС‚РєР».'),
-		(INI.INI.isCheckUpdates and "{21C90E}Р’РєР»." or '{C91A14}РћС‚РєР».'),
-		(INI.INI.soundInAFK and "{21C90E}Р’РєР»." or '{C91A14}РћС‚РєР».'),
-		(INI.INI.callsVolume == 0 and "{C91A14}РћС‚РєР»." or INI.INI.callsVolume), 
-		(INI.INI.findVolume == 0 and "{C91A14}РћС‚РєР»." or INI.INI.findVolume),
-		(INI.INI.radioVolume == 0 and "{C91A14}РћС‚РєР»." or INI.INI.radioVolume),
-		(INI.INI.userVolume == 0 and "{C91A14}РћС‚РєР»." or INI.INI.userVolume)
+		(INI.INI.state and "{21C90E}Вкл." or '{C91A14}Откл.'),
+		(INI.INI.isCheckUpdates and "{21C90E}Вкл." or '{C91A14}Откл.'),
+		(INI.INI.soundInAFK and "{21C90E}Вкл." or '{C91A14}Откл.'),
+		(INI.INI.callsVolume == 0 and "{C91A14}Откл." or INI.INI.callsVolume), 
+		(INI.INI.findVolume == 0 and "{C91A14}Откл." or INI.INI.findVolume),
+		(INI.INI.radioVolume == 0 and "{C91A14}Откл." or INI.INI.radioVolume),
+		(INI.INI.userVolume == 0 and "{C91A14}Откл." or INI.INI.userVolume)
 	)
-	sampShowDialog(20000, "РќР°СЃС‚СЂРѕР№РєРё - PD Radio v"..thisScript().version.." | "..CFG.name, text, BTN1, BTN2, 4)
+	sampShowDialog(20000, "Настройки - PD Radio v"..thisScript().version.." | "..CFG.name, text, BTN1, BTN2, 4)
 end
 
 function checkDialogsRespond()
-	-- РќР°С…РѕРґРёС‚СЃСЏ РІ main() while true do
+	-- Находится в main() while true do
 	local result, button, list, _ = sampHasDialogRespond(20000)
 	if result and button == 1 then
 		listMainMenu = list
@@ -1414,19 +1413,19 @@ function checkDialogsRespond()
 			saveIni()
 			mainMenu()
 			if not INI.INI.soundInAFK then
-				chatMessage("РўРµРїРµСЂСЊ РґРёСЃРїРµС‚С‡РµСЂ РЅРµ Р±СѓРґРµС‚ РѕР·РІСѓС‡РёРІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ, РєРѕС‚РѕСЂС‹Рµ РїСЂРѕРёР·РѕС€Р»Рё, РєРѕРіРґР° РІС‹ Р±С‹Р»Рё РІ РђР¤Рљ Р±РѕР»СЊС€Рµ 2С… РјРёРЅСѓС‚.")
+				chatMessage("Теперь диспетчер не будет озвучивать события, которые произошли, когда вы были в АФК больше 2х минут.")
 			end
 		elseif list == 3 then
-			sampShowDialog(20001, "Р“СЂРѕРјРєРѕСЃС‚СЊ {FF4400}РІС‹Р·РѕРІРѕРІ 911:", "Р•СЃР»Рё РІС‹ С…РѕС‚РёС‚Рµ РѕС‚РєР»СЋС‡РёС‚СЊ РѕР·РІСѓС‡РєСѓ, РІРІРµРґРёС‚Рµ 0.", 
+			sampShowDialog(20001, "Громкость {FF4400}вызовов 911:", "Если вы хотите отключить озвучку, введите 0.", 
 				BTN1, BTN2, 1)
 		elseif list == 4 then
-			sampShowDialog(20001, "Р“СЂРѕРјРєРѕСЃС‚СЊ {ABCDEF}/find:", "Р•СЃР»Рё РІС‹ С…РѕС‚РёС‚Рµ РѕС‚РєР»СЋС‡РёС‚СЊ РѕР·РІСѓС‡РєСѓ, РІРІРµРґРёС‚Рµ 0.", 
+			sampShowDialog(20001, "Громкость {ABCDEF}/find:", "Если вы хотите отключить озвучку, введите 0.", 
 				BTN1, BTN2, 1)
 		elseif list == 5 then
-			sampShowDialog(20001, "Р“СЂРѕРјРєРѕСЃС‚СЊ {8D8DFF}/r:", "Р•СЃР»Рё РІС‹ С…РѕС‚РёС‚Рµ РѕС‚РєР»СЋС‡РёС‚СЊ РѕР·РІСѓС‡РєСѓ, РІРІРµРґРёС‚Рµ 0.", 
+			sampShowDialog(20001, "Громкость {8D8DFF}/r:", "Если вы хотите отключить озвучку, введите 0.", 
 				BTN1, BTN2, 1)
 		elseif list == 6 then
-			sampShowDialog(20001, "Р“СЂРѕРјРєРѕСЃС‚СЊ {66DDAA}user-СЌРІРµРЅС‚РѕРІ:", "Р•СЃР»Рё РІС‹ С…РѕС‚РёС‚Рµ РѕС‚РєР»СЋС‡РёС‚СЊ РѕР·РІСѓС‡РєСѓ, РІРІРµРґРёС‚Рµ 0.", 
+			sampShowDialog(20001, "Громкость {66DDAA}user-эвентов:", "Если вы хотите отключить озвучку, введите 0.", 
 				BTN1, BTN2, 1)
 		elseif list == 7 then
 			mainMenu()
@@ -1434,26 +1433,26 @@ function checkDialogsRespond()
 			local userEvents = ""
 			if INI[CFG.name.."_UserEvents"] then
 				for i, it in ipairs(INI[CFG.name.."_UserEvents"]) do
-					userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Р’РєР»." or "{C91A14}РћС‚РєР».").."\n"
+					userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Вкл." or "{C91A14}Откл.").."\n"
 				end
 			end
 			if userEvents == "" then
-				chatMessage("User-СЌРІРµРЅС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅРѕ!")
+				chatMessage("User-эвентов не найдено!")
 				mainMenu()
 			else
-				sampShowDialog(20002, "РћС‚РєР»СЋС‡РµРЅРёРµ user-СЌРІРµРЅС‚РѕРІ", userEvents,
+				sampShowDialog(20002, "Отключение user-эвентов", userEvents,
 					BTN1, BTN2, 4)
 			end
 		elseif list == 9 then
-			sampShowDialog(20003, "РџСЂРѕРІРµСЂРєР° РїР°С‚С‚РµСЂРЅР°", 
-				"Р’РІРµРґРёС‚Рµ РЅСѓР¶РЅСѓСЋ СЃС‚СЂРѕРєСѓ РёР· С‡Р°С‚Р° РґР»СЏ РїСЂРѕРІРµСЂРєРё Рё РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёСЏ:\n"..
-				"Р”Р»СЏ Р·Р°РґР°РЅРёСЏ С†РІРµС‚Р° СЃС‚СЂРѕРєРё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РІРЅР°С‡Р°Р»Рµ R: (С†РІРµС‚ Р±РµР· #) (РЎС‚СЂРѕРєР°).",
+			sampShowDialog(20003, "Проверка паттерна", 
+				"Введите нужную строку из чата для проверки и воспроизведения:\n"..
+				"Для задания цвета строки используйте вначале R: (цвет без #) (Строка).",
 			BTN1, BTN2, 1)
 		elseif list == 10 then
 			IS_CLEAN_QUEUE = true
 			wait(100)
 			IS_CLEAN_QUEUE = false
-			chatMessage("РћС‡РµСЂРµРґСЊ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёСЏ Р±С‹Р»Р° РѕС‡РёС‰РµРЅР°.")
+			chatMessage("Очередь воспроизведения была очищена.")
 		elseif list == 11 then
 			mainMenu()
 		elseif list == 12 then
@@ -1461,11 +1460,11 @@ function checkDialogsRespond()
 		end
 	end
 
-	-- Р“СЂРѕРјРєРѕСЃС‚СЊ
+	-- Громкость
 	local result, button, _, input = sampHasDialogRespond(20001)
 	if result and button == 1 then
 		if not tonumber(input) or tonumber(input) < 0 then
-			chatMessage("Р“СЂРѕРјРєРѕСЃС‚СЊ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С‡РёСЃР»РѕРј Р±РѕР»СЊС€РёРј РёР»Рё СЂР°РІРЅС‹Рј РЅСѓР»СЋ.")
+			chatMessage("Громкость должно быть числом большим или равным нулю.")
 		else
 			input = tonumber(input)
 			if listMainMenu == 2 then INI.INI.callsVolume = input
@@ -1479,7 +1478,7 @@ function checkDialogsRespond()
 		mainMenu()
 	end
 
-	-- РћС‚РєР»СЋС‡РµРЅРёРµ user СЌРІРµРЅС‚РѕРІ
+	-- Отключение user эвентов
 	local result, button, list, _ = sampHasDialogRespond(20002)
 	if result and button == 1 then
 		local key = CFG.name.."_UserEvents"
@@ -1488,43 +1487,43 @@ function checkDialogsRespond()
 
 		local userEvents = ""
 		for i, it in ipairs(INI[CFG.name.."_UserEvents"]) do
-			userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Р’РєР»." or "{C91A14}РћС‚РєР».").."\n"
+			userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Вкл." or "{C91A14}Откл.").."\n"
 		end
-		sampShowDialog(20002, "РћС‚РєР»СЋС‡РµРЅРёРµ user-СЌРІРµРЅС‚РѕРІ", userEvents,
+		sampShowDialog(20002, "Отключение user-эвентов", userEvents,
 			BTN1, BTN2, 4)
 	elseif result then
 		mainMenu()
 	end
 
-	-- РџСЂРѕРІРµСЂРєР° СЃС‚СЂРѕРєРё
+	-- Проверка строки
 	local result, button, _, input = sampHasDialogRespond(20003)
 	if result and button == 1 then
-		local color = input:match("^R: ([^%s]+) ")
-		input = input:gsub("^R: ([^%s]+) ", "")
+		local color = input:match("^R: (%w+) ")
+		input = input:gsub("^R: (%w+) ", "")
 
-		if not tonumber(color) then
+		if color and not tonumber(color) then
 			color = tonumber("0x"..color)
 		end
 
 		local h, s = handleEvent(input, color)
 		if h == false and s == 'not ev' then
-			chatMessage("РЎРѕР±С‹С‚РёРµ РЅРµ РЅР°Р№РґРµРЅРѕ. Р’РѕР·РјРѕР¶РЅРѕ РІС‹ РЅРµРїСЂР°РІРёР»СЊРЅРѕ РІРІРµР»Рё СЃС‚СЂРѕРєСѓ РІ config.json РёР»Рё РІ РїРѕР»Рµ РґР»СЏ РІРІРѕРґР°.")
-			chatMessage("Р›РёР±Рѕ, РµСЃР»Рё СЌС‚Рѕ user-СЌРІРµРЅС‚, РѕРЅ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‚РєР»СЋС‡РµРЅ РІ РЅР°СЃС‚СЂРѕР№РєР°С….")
+			chatMessage("Событие не найдено. Возможно вы неправильно ввели строку в config.json или в поле для ввода.")
+			chatMessage("Либо, если это user-эвент, он может быть отключен в настройках.")
 		elseif h == false and s == 'volume' then
-			chatMessage("РЎРѕР±С‹С‚РёРµ, РєРѕС‚РѕСЂРѕРµ РІС‹ РїС‹С‚Р°РµС‚РµСЃСЊ РІРѕСЃРїСЂРѕРёР·РІРµСЃС‚Рё, РѕС‚РєР»СЋС‡РµРЅРѕ.")
+			chatMessage("Событие, которое вы пытаетесь воспроизвести, отключено.")
 		elseif h == false and s == 'question words' then
-			chatMessage("Р’ СЃРѕРѕР±С‰РµРЅРёРё РїРѕ СЂР°С†РёРё РЅР°Р№РґРµРЅРѕ РІРѕРїСЂРѕСЃРёС‚РµР»СЊРЅРѕРµ СЃР»РѕРІРѕ.")
+			chatMessage("В сообщении по рации найдено вопросительное слово.")
 		elseif h == false and s == 'text radio' then
-			chatMessage("Р’ СЃРѕРѕР±С‰РµРЅРёРё РїРѕ СЂР°С†РёРё РЅРµ РЅР°Р№РґРµРЅРѕ РЅРёРєР°РєРёС… РєР»СЋС‡РµРІС‹С… СЃР»РѕРІ.")
+			chatMessage("В сообщении по рации не найдено никаких ключевых слов.")
 		elseif h == false and s == 'stopWords' then
-			chatMessage('Р’ РІС‹Р·РѕРІРµ РЅР°Р№РґРµРЅС‹ "СЃС‚РѕРї-СЃР»РѕРІР°" РёР· config.json.')
+			chatMessage('В вызове найдены "стоп-слова" из config.json.')
 		elseif h == false then
-			chatMessage("РџСЂРё РїСЂРѕРІРµСЂРєРё СЃС‚СЂРѕРєРё РїСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР°. РџРѕРґСЂРѕР±РЅРµРµ РІ moonloader.log.")
+			chatMessage("При проверки строки произошла ошибка. Подробнее в moonloader.log.")
 		elseif h == true then
-			chatMessage("Р’Р°С€Р° СЃС‚СЂРѕРєР° СЃРѕРґРµСЂР¶Р°Р»Р° РјР°Р»Рѕ РґР°РЅРЅС‹С…, РїРѕСЌС‚РѕРјСѓ СЃРѕС…СЂР°РЅРµРЅР° РґРѕ СЃР»РµРґСѓСЋС‰РµРіРѕ СЃРѕР±С‹С‚РёСЏ.")
-			chatMessage("РџСЂРёРјРµС‡Р°РЅРёРµ: РєР°Рє С‚РѕР»СЊРєРѕ РїСЂРёРґРµС‚ РЅРѕРІР°СЏ СЃС‚СЂРѕРєР° РІ С‡Р°С‚Рµ, РґР°РЅРЅС‹Рµ РѕР±РЅСѓР»СЏС‚СЊСЃСЏ.")
+			chatMessage("Ваша строка содержала мало данных, поэтому сохранена до следующего события.")
+			chatMessage("Примечание: как только придет новая строка в чате, данные обнуляться.")
 		else
-			chatMessage("РљР°Р¶РµС‚СЃСЏ, РІСЃРµ РїСЂРѕС€Р»Рѕ СѓСЃРїРµС€РЅРѕ.")
+			chatMessage("Кажется, все прошло успешно.")
 		end
 	elseif result then
 		mainMenu()
@@ -1536,5 +1535,5 @@ function saveIni()
 	inicfg.save(INI, PATH.ini)
 end
 
--- РЎРїР°СЃРёР±Рѕ Р·Р° РїРѕРґРґРµСЂР¶РєСѓ youtube.com/c/Brothersincompany <3
+-- Спасибо за поддержку youtube.com/c/Brothersincompany <3
 -- vk.com/donaks
