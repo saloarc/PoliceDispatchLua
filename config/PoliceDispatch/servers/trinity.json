@@ -1,0 +1,67 @@
+{
+    "configInfo": {
+        "name": "Trinity RP",
+        "description": "Включает в себя и озвучку вызовов 911 в отделение медиков.",
+        "authors": "donaks, Владимир Хоферсон",
+        "version": "2.0",
+        "versionNumber": 2,
+        "dateLastUpdate": "8 мая 2021 года"
+    },
+    "serverInfo": {
+        "name": "Trinity"
+    },
+    "extraVariableValues": {
+        "vehNames": {
+            "Utility": 552,
+            "Police US": 596,
+            "Police AF": 597,
+            "Police RC": 598
+        },
+        "areas": {
+            // Помещения Trinity RP
+            "новостное агентство los santos": "Market",
+			"госпиталь all saints": "Market",
+            "департамент полиции los santos": "Commerce",
+            "бар «ten green bottles»": "Ganton",
+            "таксопарк los santos": "Little Mexico",
+            "клуб «pig pen»": "East Los Santos",
+            "бар «the welcome pump»": "Dillimore",
+            "ночной клуб «alhambra»": "Idlewood",
+            "клуб «crystal»": "Market"
+        }
+    },
+    "events": {
+		"find": {
+			"chatMessage": [
+				"Объект {abcdef}@nick{ffffff} обнаружен. Передвигается @v_na {D8A903}@vehname{ffffff}.",
+				"Находится в районе {fbec5d}@area{ffffff}. Центр зоны поиска отмечен флагом на радаре."
+			],
+			"vehOnFoot": "пешком"
+		},
+		"call911": {
+			"chatMessage": [
+				"^Вызов 911: %{ffffff%}@text От:%{abcdef%}.+%{ffffff%} Место вызова: %{abcdef%}[Район ]*@area",
+				"^Вызов 911: %{ffffff%}@text От:%{abcdef%} .+ ID %d+$",
+				"^Вызов 911: %{ffffff%}Место вызова: %{abcdef%}[Район ]*@area"
+			],
+			"isUseRegEx": true
+		},
+		"radio": {
+			"chatMessage": "^.+ %w+_%w+: @text",
+			"isUseRegEx": true,
+			"colorChatMessage": [-1920073729, -1150916865]
+		},
+		"user": [
+			{
+				"name": "Вызов скорой помощи",
+				"chatMessage": "Вызов 911 #@text: {ffffff}@text. От:",
+				"soundList": [
+				    "radio_calling.wav",
+					"@randomtencodewithin",
+					"@randomareaincityplayer"
+				],
+				"isPlayRadioOn": true
+			}
+		]
+	}
+}

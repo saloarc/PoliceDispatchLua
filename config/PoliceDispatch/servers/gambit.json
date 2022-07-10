@@ -1,0 +1,35 @@
+{
+    "configInfo": {
+        "name": "Gambit RP",
+        "authors": "donaks, Игорь Булатов",
+        "version": "1.1",
+        "versionNumber": 2,
+        "dateLastUpdate": "21 декабря 2020 года"
+    },
+    "serverInfo": {
+        "name": "Gambit Role Play "
+    },
+    "events": {
+        "call911": {
+            "chatMessage": [
+                "* 911 DISP: Поступил вызов из '@area' от ",
+                "* Ситуация #@n: @text"
+            ]
+        },
+        "radio": {
+            "chatMessage": "[CH: 911, S: @n] @nick: @text"
+        },
+        "user": [
+            {
+                "name": "/bk",
+                "chatMessage": "[R] Диспетчер: @nick запрашивает поддержку полицейского департамента.",
+                "soundList": [
+                    "suspect/Respond to a 10-.wav",
+                    "@randomtencodewithin",
+                    "@cityplayer"
+                ],
+                "isPlayRadioOn": true
+            }
+        ]
+    }
+}

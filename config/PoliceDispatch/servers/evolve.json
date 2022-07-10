@@ -1,0 +1,78 @@
+{
+    "configInfo": {
+        "name": "Evolve RP",
+        "authors": "donaks, ",
+        "version": "1.0",
+        "versionNumber": 1,
+        "dateLastUpdate": ""
+    },
+    "serverInfo": {
+        "name": "Evolve RP"
+    },
+    "events": {
+        "radio": {
+            "chatMessage": "^[^%(]+ %a+_%a+%: @text",
+            "isUseRegEx": true,
+            "colorChatMessage": "0x8D8DFF00",
+            "userMessages": [
+                {
+                    "textFind": [
+                        "10-57",
+                        "10 57",
+                        "погоня"
+                    ],
+                    "isUseRegEx": false,
+                    "soundList": [
+                        "suspect/Respond to a 10-.wav",
+                        "ten_codes/37 in.wav",
+                        "@randomareaincityplayer"
+                    ],
+                    "isPlayRadioOn": true
+                },
+                {
+                    "textFind": [
+                        "10-71",
+                        "10 71",
+                        "10-72",
+                        "10 72",
+                        "10-73",
+                        "10 73"
+                    ],
+                    "isUseRegEx": false,
+                    "soundList": [
+                        "suspect/Respond to a 10-.wav",
+                        "ten_codes/71 in.wav",
+                        "@randomareaincityplayer"
+                    ],
+                    "isPlayRadioOn": true
+                },
+                {
+                    "textFind": [
+                        "10 99",
+                        "10-99"
+                    ],
+                    "isUseRegEx": false,
+                    "soundList": [
+                        "suspect/Head to a 10-.wav",
+                        "ten_codes/90 in.wav",
+                        "@randomareaincityplayer"
+                    ],
+                    "isPlayRadioOn": true
+                },
+                {
+                    "textFind": [
+                        "10 17",
+                        "10-17"
+                    ],
+                    "isUseRegEx": false,
+                    "soundList": [
+                        "suspect/Respond to a 10-.wav",
+                        "ten_codes/17 in.wav",
+                        "@randomareaincityplayer"
+                    ],
+                    "isPlayRadioOn": true
+                }
+            ]
+        }
+    }
+}

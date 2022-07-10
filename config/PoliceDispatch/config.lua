@@ -1,87 +1,12 @@
--- encoding: cyrillic (windows 1251)
 script_author('donaks')
 
--- string.lower � string.upper �� �������� � �������� ���������
--- ������� ��������� ������� � ��������������.
-local lu_rus, ul_rus = {}, {}
-for i = 192, 223 do
-	local A, a = string.char(i), string.char(i + 32)
-	ul_rus[A] = a
-	lu_rus[a] = A
-end
-function string.tolower(self)
-	local s = self:lower()
-	local len, res = #s, {}
-	for i = 1, len do
-		local ch = s:sub(i, i)
-		res[i] = ul_rus[ch] or ch
-	end
-	return table.concat(res)
-end
-
-
 PATH = {
-	config=getWorkingDirectory().."\\config\\PoliceDispatch\\",
-	ini="PoliceDispatch/config.ini",
-	audio=getWorkingDirectory().."\\resource\\PoliceDispatchAudio\\",
-	area="areas\\",
-	code1="code1\\",
-	code0="code0\\",
-	gangActivity="gangActivity\\",
-	areaAndCode="areaAndCode\\",
-	vehicles="vehicles\\",
-	colors="colors\\"
-}
-
--- DISP.
-DISPATCH_SOUNDS = {
-	radioOn=PATH.audio.."radio_on.wav",
-	suspect={
-		inWater=PATH.audio.."suspect\\In water.wav",
-		onFoot=PATH.audio.."suspect\\On foot.wav",
-		lastSeen=PATH.audio.."suspect\\Suspect last seen.wav",
-		suspectInWater=PATH.audio.."suspect\\Suspect in water.wav",
-		suspect1=PATH.audio.."suspect\\Suspect1.wav",
-		suspect2=PATH.audio.."suspect\\Suspect2.wav"
-	},
-	codesWithIn={
-		[7]=PATH.audio.."ten_codes\\7 in.wav",
-		[17]=PATH.audio.."ten_codes\\17 in.wav",
-		[21]=PATH.audio.."ten_codes\\21 in.wav",
-		[24]=PATH.audio.."ten_codes\\24 in.wav",
-		[28]=PATH.audio.."ten_codes\\28 in.wav",
-		[34]=PATH.audio.."ten_codes\\34 in.wav",
-		[37]=PATH.audio.."ten_codes\\37 in.wav",
-		[71]=PATH.audio.."ten_codes\\71 in.wav",
-		[81]=PATH.audio.."ten_codes\\81 in.wav",
-		[90]=PATH.audio.."ten_codes\\90 in.wav",
-		[91]=PATH.audio.."ten_codes\\91 in.wav"
-	},
-	codes={
-		[7]=PATH.audio.."ten_codes\\7.wav",
-		[17]=PATH.audio.."ten_codes\\17.wav",
-		[21]=PATH.audio.."ten_codes\\21.wav",
-		[24]=PATH.audio.."ten_codes\\24.wav",
-		[28]=PATH.audio.."ten_codes\\28.wav",
-		[34]=PATH.audio.."ten_codes\\34.wav",
-		[37]=PATH.audio.."ten_codes\\37.wav",
-		[71]=PATH.audio.."ten_codes\\71.wav",
-		[81]=PATH.audio.."ten_codes\\81.wav",
-		[90]=PATH.audio.."ten_codes\\90.wav",
-		[91]=PATH.audio.."ten_codes\\91.wav"
-	},
-	words={
-		headTo10=PATH.audio.."suspect\\Head to a 10-.wav",
-		respondTo10=PATH.audio.."suspect\\Respond to a 10-.wav",
-		weGot10=PATH.audio.."suspect\\We got a 10-.wav",
-		inA=PATH.audio.."suspect\\In a.wav",
-		onA=PATH.audio.."suspect\\On a.wav",
-		attempt=PATH.audio.."ten_codes\\attempt.wav"
-	}
+	config=getWorkingDirectory().."/config/PoliceDispatch/",
+	audio=getWorkingDirectory().."/resource/PoliceDispatchAudio/"
 }
 
 function scandir(mask)
-	-- ���������� ������ ���� ������ �� �����.
+	-- Возвращает массив всех файлов по маске.
 	local handle
 	local t = {}
 	handle, t[1] = findFirstFile(mask)
@@ -92,40 +17,103 @@ function scandir(mask)
 
     return t
 end
+CODE_0_SOUNDS = scandir(PATH.audio..
+	"broadcast_from_real_police_radio_recordings_in_critical_situations/*.mp3"
+)
+CODE_1_SOUNDS = scandir(PATH.audio..
+	"broadcast_from_real_police_radio_recordings_in_shots_fired_situations/"..
+	"*.mp3"
+)
 
--- ������ � ���� ��� �����
-CODE_0_SOUNDS = scandir(PATH.audio..PATH.code0.."*.mp3")
-CODE_1_SOUNDS = scandir(PATH.audio..PATH.code1.."*.mp3")
-GANG_ACTIVITY_SOUNDS = scandir(PATH.audio..PATH.gangActivity.."*.mp3")
-AREA_AND_CODE_SOUNDS = scandir(PATH.audio..PATH.areaAndCode.."*.wav")
+--[[
+	Ключ в таблице - цвет, значение - таблица идентификаторов цветов,
+	которые к нему относятся. Диспетчер говорит либо основной цвет
+	транспортного средства, либо оба, если идентификатор транспортного
+	средства присутствует в таблице CARS_TO_SOUND_TWO_COLORS. Если же
+	в названии ключа в таблице присутствует префикс Light или Dark, то
+	диспетчер говорит, например, Light Red или Dark Blue. (Идея с
+	оттенками не была реализована!). Таблица была составлена и написана
+	вручную.
 
--- ���� - ���������������.wav. 
--- ���� �� ������� Light ��� Dark, �� ��������������� ��� �����.
--- �������� - ������ ��������������� ������, ������� � ���� ���������.
--- ��� ������� �������. ��������� ������������� ���� ������ ���� ����, ���� ���,
--- ���� ��������� � ������� CARS_TO_SOUND_TWO_COLORS
+	Примечание для разработчика #1: на составление списка с оттенками
+	цветов уйдёт слишком много "непрограммистского" времени. Я еб#л
+	в рот заниматься такой х#йнёй. Но, к сожалению, эта хуйня создаёт
+	нужный вайб. Ведь дьявол - он в мелочах бл#дь (нет, нахуй, во мне!).
+]]
 COLORS = {
-	Blue={2, 7, 12, 10, 20, 28, 32, 39, 53, 54, 59, 67, 71, 75, 79, 87, 91, 93, 94, 95, 97, 98, 100, 101, 103, 106, 108, 116, 116, 125, 130, 134, 135, 139, 152, 155, 157, 162, 163, 165, 166, 198, 201, 203, 204, 208, 209, 210, 217, 223, 240, 246, 255},
-	Black={0, 36, 40, 127, 129, 133, 148, 164, 186, 205, 206, 215, 236},
-	Brown={27, 30, 31, 36, 40, 47, 55, 57, 66, 84, 102, 104, 113, 119, 120, 123, 131, 132, 149, 159, 168, 172, 173, 174, 199, 200, 216, 218, 219, 224, 225, 230, 231, 238, 244},
-	Copper={158, 180, 182, 183, 212, 222, 239, 242, 248, 249},
-	Gold={6, 46, 61, 142, 194, 197, 214, 221, 228},
-	Green={4, 9, 16, 37, 38, 44, 51, 52, 65, 73, 83, 86, 114, 137, 128, 145, 150, 151, 153, 154, 160, 187, 188, 189, 191, 195, 202, 226, 227, 229, 234, 235, 241, 243},
-	Grey={8, 11, 13, 14, 15, 16, 19, 23, 24, 25, 26, 29, 33, 34, 35, 49, 50, 56, 60, 69, 72, 77, 81, 92, 99, 105, 107, 109, 110, 111, 112, 118, 122, 138, 140, 141, 156, 185, 192, 193, 196, 207, 213, 247, 250, 251, 252, 253, 254},
-	Pink={5, 85, 126, 161, 220},
-	Red={3, 17, 18, 21, 22, 42, 43, 45, 58, 62, 70, 74, 78, 80, 82, 88, 115, 117, 121, 124, 175, 181},
-	White={1, 14, 15, 63, 64, 68, 76, 89, 90, 96}
-
+	Blue={
+		2, 7, 12, 10, 20, 28, 32, 39, 53, 54, 59, 67, 71, 75, 79, 87, 91, 93,
+		94, 95, 97, 98, 100, 101, 103, 106, 108, 116, 116, 125, 130, 134, 135,
+		139, 152, 155, 157, 162, 163, 165, 166, 198, 201, 203, 204, 208, 209,
+		210, 217, 223, 240, 246, 255
+	},
+	Black={
+		0, 36, 40, 127, 129, 133, 148, 164, 186, 205, 206, 215, 236
+	},
+	Brown={
+		27, 30, 31, 36, 40, 47, 55, 57, 66, 84, 102, 104, 113, 119, 120, 123, 
+		131, 132, 149, 159, 168, 172, 173, 174, 199, 200, 216, 218, 219, 224, 
+		225, 230, 231, 238, 244
+	},
+	Copper={
+		158, 180, 182, 183, 212, 222, 239, 242, 248, 249
+	},
+	Gold={
+		6, 46, 61, 142, 194, 197, 214, 221, 228
+	},
+	Green={
+		4, 9, 16, 37, 38, 44, 51, 52, 65, 73, 83, 86, 114, 137, 128, 145, 150,
+		151, 153, 154, 160, 187, 188, 189, 191, 195, 202, 226, 227, 229, 234,
+		235, 241, 243
+	},
+	Grey={
+		8, 11, 13, 14, 15, 16, 19, 23, 24, 25, 26, 29, 33, 34, 35, 49, 50, 56, 
+		60, 69, 72, 77, 81, 92, 99, 105, 107, 109, 110, 111, 112, 118, 122,
+		138, 140, 141, 156, 185, 192, 193, 196, 207, 213, 247, 250, 251, 252,
+		253, 254
+	},
+	Pink={
+		5, 85, 126, 161, 220
+	},
+	Red={
+		3, 17, 18, 21, 22, 42, 43, 45, 58, 62, 70, 74, 78, 80, 82, 88, 115,
+		117, 121, 124, 175, 181
+	},
+	White={
+		1, 14, 15, 63, 64, 68, 76, 89, 90, 96
+	}
 }
--- ���������, ��� ������� ����.
--- ��������������� ��� "White Red Firetrack"
+
+--[[
+	Транспортные средства (далее т/с), при объявлении цвета которых,
+	диспетчер назовёт не только основной цвет авто, но и дополнительный.
+	Например, "White Red Firetrack". Список был составлен и написан
+	вручную. Комментарии с названием т/с рядом с идентификатором т/с
+	были написаны для возможности редактирования таблицы.
+
+	Примечание для разработчика #2: вариант с написанием названия т/с,
+	вместо его идентификатора, резонный. Но есть две проблемы: 1)
+	названия т/с в разных источниках могут разнится. Если же
+	использовать в качестве эталона таблицу CAR_NAMES, то при
+	гипотетически возможном изменении таблицы CAR_NAMES, придётся
+	менять и элементы таблицы CARS_TO_SOUND_TWO_COLORS. 2) Неясно как
+	быть с названием "Фургончик с мороженым". Ведь это название
+	является более понятным, чем "Mr Whoopee". Таким образом лучше
+	оставить как есть, с определением т/с через идентификатор в игре.
+	Ведь он является универсальным. Будет хорошо, если это решение
+	распространится на остальные участки кода. Ведь чем меньше хаоса и
+	энтропии, тем проще читать, писать, просматривать и редактировать
+	код.
+	P.S. Как же я еб#л в рот эти гипотетически возможные варианты,
+	сука! Из-за тревоги о них мне становится трудно писать скрипт.
+]]
 CARS_TO_SOUND_TWO_COLORS = {
 	407, -- Firetruck
 	416, -- Ambulance
-	423, -- ��������� � ���������
+	423, -- Фургончик с мороженым
 	424, -- BF Injection
 	427, -- Enforcer
-	428, -- ����������
+	428, -- Инкассатор
 	429, -- Banshee
 	431, -- Bus
 	444, -- Monster
@@ -168,40 +156,47 @@ CARS_TO_SOUND_TWO_COLORS = {
 	609 -- Boxville
 }
 
-
--- ������������ ��������, ��������� ������� �� ������� �� ���������� �����
-CARS_WITH_DEF_COLOR = {
+--[[
+	Транспортные средства, расцветка которых не зависит от системного цвета.
+	Таблица была составлена и написана вручную.
+	Примечание для разработчика #3: см. прим. для разработчика #2
+]]
+TABLE_OF_VEHICLES_WITHOUT_CHANGING_COLOR = {
 	[406]="Silver", -- Dumper
 	[417]="Silver", -- Helicopter
 	[425]="Green", -- Hunter
-	[432]="Not sound", -- ����
+	[432]="Do not say", -- Танк
 	[434]="Customize", -- Hotknife
-	[447]="Not sound", -- Helipopter Seasparrow
-	[449]="Not sound", -- �������
-	[464]="Red", -- ��������
-	[465]="Green", -- ���������
+	[447]="Do not say", -- Helipopter Seasparrow
+	[449]="Do not say", -- Трамвай
+	[464]="Red", -- Самолётик
+	[465]="Green", -- Вертолётик
 	[470]="Copper", -- Patriot
-	[486]="Not sound", -- ���������
-	[501]="Brown", -- ���������
+	[486]="Do not say", -- Бульдозер
+	[501]="Brown", -- Вертолётик
 	[520]="Silver", -- Hydra
 	[523]="Silver", -- HPV1000
 	[525]="White", -- Tow Truck
 	[528]="Blue", -- FBI Truck
-	[532]="Not sound", -- �������
+	[532]="Do not say", -- Комбайн
 	[548]="Green", -- Cargobob
 	[557]="Customize", -- Monster A
 	[557]="Customize", -- Monster B
-	[568]="Not sound", -- Bandito
+	[568]="Do not say", -- Bandito
 	[571]="Customize", -- Kart
 	[601]="Blue" -- S.W.A.T.
 }
 
--- ������������� ����, ������� �������� ���������
--- ���� - ����������������������.wav
--- �������� - ��� �����������, ������� � ��� ���������.
-CARS = {
+--[[ 
+	В этой таблице весь транспорт в игре рассортирован по 
+	Таблица была составлена и написана вручную.
+]]
+TYPE_OF_VEHICLE = {
 	["2 Door"]={434, 542, 583},
-	["4 Door"]={405, 421, 426, 445, 466, 467, 492, 507, 529, 540, 546, 547, 550, 551, 580, 585, 604},
+	["4 Door"]={
+		405, 421, 426, 445, 466, 467, 492, 507, 529, 540, 546, 547, 550, 551, 
+		580, 585, 604
+	},
 	["Ambulance"]={416},
 	["Beach buggy"]={424},
 	["Bike"]={481, 509, 510},
@@ -219,7 +214,9 @@ CARS = {
 	["Go Kart"]={571},
 	["Golf Car"]={457},
 	["Hearse"]={442},
-	["Helicopter"]={417, 425, 447, 465, 469, 487, 488, 496, 497, 501, 548, 563},
+	["Helicopter"]={
+		417, 425, 447, 465, 469, 487, 488, 496, 497, 501, 548, 563
+	},
 	["Hovercraft"]={539},
 	["Icecream Van"]={423},
 	["Jeep"]={400, 489, 579},
@@ -239,7 +236,10 @@ CARS = {
 	["Sea Plane"]={460},
 	["Speedboat"]={446, 452},
 	["Sports Bike"]={522},
-	["Sports Car"]={402, 411, 415, 429, 451, 477, 494, 502, 503, 504, 506, 541, 558, 559, 560, 562, 565, 587, 589, 602, 603},
+	["Sports Car"]={
+		402, 411, 415, 429, 451, 477, 494, 502, 503, 504, 506, 541, 558, 559, 
+		560, 562, 565, 587, 589, 602, 603
+	},
 	["Station Wagon"]={404, 418, 458, 479, 561},
 	["Tank"]={432, 564},
 	["Taxi"]={420, 438},
@@ -247,12 +247,38 @@ CARS = {
 	["Train"]={537, 538, 570},
 	["Tram"]={449},
 	["Truck"]={403, 406, 443, 455, 514, 515, 524, 525, 528, 578},
-	["Van"]={413, 414, 428, 433, 440, 456, 459, 478, 482, 498, 499, 552, 582, 588, 609}
+	["Van"]={
+		413, 414, 428, 433, 440, 456, 459, 478, 482, 498, 499, 552, 582, 588,
+		609
+	}
 }
 
--- ������, ������� �� ���������� ���������
--- ����: �������� ������, ��������: �����, �� ������� ��������.
-AREAS_NOT_VOICED = {
+QUESTION_WORD_TABLE = {
+	"что", "почему", "зачем", "куда", "кто", "когда", "где", "откуда", "чей",
+	"как", "why", "what", "which", "who", "where", "when", "how"
+}
+
+-- string.lower и string.upper не работает с русскими символами
+-- поэтому отдельная функция с переделыванием.
+local lu_rus, ul_rus = {}, {}
+for i = 192, 223 do
+	local A, a = string.char(i), string.char(i + 32)
+	ul_rus[A] = a
+	lu_rus[a] = A
+end
+function string.tolower(self)
+	local s = self:lower()
+	local len, res = #s, {}
+	for i = 1, len do
+		local ch = s:sub(i, i)
+		res[i] = ul_rus[ch] or ch
+	end
+	return table.concat(res)
+end
+
+-- Далее идут таблицы, связанные с районами и названиями автомобилей.
+
+TABLE_OF_DISTRICTS_THAT_THE_DISPATCHER_DOES_NOT_VOICE = {
 	["the strip"]="Las Venturas",
 	["jefferson"]="East Los Santos",
 	["pershing square"]="Commerce",
@@ -283,239 +309,194 @@ AREAS_NOT_VOICED = {
 	["pirates in mens pants"]="Las Venturas"
 }
 
--- ���� � ����� ���� �������������� ����� � ��� 1 ��� ��� 0 �����,
--- � �������: "������ ��� �������� code-0?" ��� "��� ������� ��� 0?",
--- ���� �� �������������.
-QUESTION_WORDS = {
-	"���", "������", "�����", "����", "���", "�����", "���", "������", "���", "���"
+TABLE_OF_DICTRICTS_SORTED_BY_8_LARGE_REGIONS = {
+	["Bone County"]={
+ 		"Las Brujas",
+ 		"Regular Tom",
+ 		"El Castillo del Diablo",
+ 		"Green Palms",
+ 		"Las Payasadas",
+ 		"Lil' Probe Inn",
+ 		"'The Big Ear'",
+ 		"Verdant Meadows",
+ 		"Octane Springs",
+ 		"Fort Carson",
+ 		"Hunter Quarry",
+ 		"Restricted Area"
+ 	},
+	["San Fierro"]={
+ 		"Avispa Country Club",
+ 		"Easter Bay Airport",
+ 		"Garcia",
+ 		"Esplanade East",
+ 		"Cranberry Station",
+ 		"Foster Valley",
+ 		"Queens",
+ 		"Gant Bridge",
+ 		"King's",
+ 		"Downtown",
+ 		"Ocean Flats",
+ 		"Easter Tunnel",
+ 		"Garver Bridge",
+ 		"Kincaid Bridge",
+ 		"Chinatown",
+ 		"Esplanade North",
+ 		"Battery Point",
+ 		"Doherty",
+ 		"City Hall",
+ 		"Hashbury",
+ 		"Santa Flora",
+ 		"Easter Basin",
+ 		"San Fierro Bay",
+ 		"Paradiso",
+ 		"Juniper Hill",
+ 		"Juniper Hollow",
+ 		"Financial",
+ 		"Calton Heights",
+ 		"Palisades",
+ 		"Missionary Hill",
+ 		"Mount Chiliad"
+ 	},
+	["Los Santos"]={
+ 		"East Los Santos",
+ 		"Temple",
+ 		"Unity Station",
+ 		"Los Flores",
+ 		"Downtown Los Santos",
+ 		"Market Station",
+ 		"Jefferson",
+ 		"Mulholland",
+ 		"Rodeo",
+ 		"Little Mexico",
+ 		"Los Santos International",
+ 		"Richman",
+ 		"Conference Center",
+ 		"Las Colinas",
+ 		"Willowfield",
+ 		"Vinewood",
+ 		"Verona Beach",
+ 		"Commerce",
+ 		"Idlewood",
+ 		"Ocean Docks",
+ 		"Glen Park",
+ 		"Marina",
+ 		"Pershing Square",
+ 		"Market",
+ 		"Verdant Bluffs",
+ 		"East Beach",
+ 		"Ganton",
+ 		"El Corona",
+ 		"Playa del Seville",
+ 		"Santa Maria Beach"
+ 	},
+	["Tierra Robada"]={
+ 		"Aldea Malvada",
+ 		"Kincaid Bridge",
+ 		"Garver Bridge",
+ 		"Bayside Marina",
+ 		"Robada Intersection",
+ 		"Las Barrancas",
+ 		"Sherman Reservoir",
+ 		"Valle Ocultado",
+ 		"Bayside Tunnel",
+ 		"Gant Bridge",
+ 		"El Quebrados",
+ 		"Arco del Oeste",
+ 		"The Sherman Dam",
+ 		"Bayside",
+ 		"San Fierro Bay"
+ 	},
+	["Red County"]={
+ 		"Montgomery Intersection",
+ 		"Frederick Bridge",
+ 		"Montgomery",
+ 		"Hampton Barns",
+ 		"Martin Bridge",
+ 		"The Mako Span",
+ 		"Mulholland",
+ 		"Fallow Bridge",
+ 		"Easter Bay Chemicals",
+ 		"Richman",
+ 		"Hilltop Farm",
+ 		"Easter Bay Airport",
+ 		"Hankypanky Point",
+ 		"Flint Water",
+ 		"Blueberry",
+ 		"Dillimore",
+ 		"Fisher's Lagoon",
+ 		"San Andreas Sound",
+ 		"Fallen Tree",
+ 		"Palomino Creek",
+ 		"Fern Ridge",
+ 		"North Rock",
+ 		"The Panopticon"
+ 	},
+	["Flint County"]={
+ 		"Easter Bay Chemicals",
+ 		"Beacon Hill",
+ 		"Flint Intersection",
+ 		"Leafy Hollow",
+ 		"The Farm",
+ 		"Flint Range",
+ 		"Los Santos Inlet",
+ 		"Back o Beyond"
+ 	},
+	["Las Venturas"]={
+ 		"LVA Freight Depot",
+ 		"Blackfield Intersection",
+ 		"Starfish Casino",
+ 		"Linden Station",
+ 		"Yellow Bell Station",
+ 		"Julius Thruway West",
+ 		"Julius Thruway North",
+ 		"Redsands West",
+ 		"The Strip",
+ 		"Blackfield Chapel",
+ 		"Yellow Bell Gol Course",
+ 		"Las Venturas Airport",
+ 		"Julius Thruway East",
+ 		"Julius Thruway South",
+ 		"Roca Escalante",
+ 		"Redsands East",
+ 		"Greenglass College",
+ 		"Caligula's Palace",
+ 		"Pilgrim",
+ 		"The Clown's Pocket",
+ 		"Prickle Pine",
+ 		"Rockshore West",
+ 		"The Visage",
+ 		"The High Roller",
+ 		"Last Dime Motel",
+ 		"The Pink Swan",
+ 		"Linden Side",
+ 		"The Four Dragons Casino",
+ 		"Blackfield",
+ 		"Pirates in Men's Pants",
+ 		"Whitewood Estates",
+ 		"Royal Casino",
+ 		"K.A.C.C. Military Fuels",
+ 		"Harry Gold Parkway",
+ 		"Randolph Industrial Estate",
+ 		"Sobell Rail Yards",
+ 		"The Emerald Isle",
+ 		"Pilson Intersection",
+ 		"Spinybed",
+ 		"Rockshore East",
+ 		"The Camel's Toe",
+ 		"Old Venturas Strip",
+ 		"Creek",
+ 		"Come-A-Lot"
+	},
+	["Whetstone"]={
+ 		"Shady Cabin",
+ 		"Foster Valley",
+ 		"Shady Creeks",
+ 		"Angel Pine",
+ 		"Mount Chiliad"
+ 	}	
 }
 
-BTN1 = "�������"
-BTN2 = "������"
-
-
-
-
-
-
--- ����� ���� ������� � ���������� ����������� � �������.
-
-CAR_NAMES = {
-	[400] = "Landstalker",
-	[401] = "Bravura",
-	[402] = "Buffalo",
-	[403] = "Linerunner",
-	[404] = "Perenniel",
-	[405] = "Sentinel",
-	[406] = "Dumper",
-	[407] = "Firetruck",
-	[408] = "Trashmaster",
-	[409] = "Stretch",
-	[410] = "Manana",
-	[411] = "Infernus",
-	[412] = "Voodoo",
-	[413] = "Pony",
-	[414] = "Mule",
-	[415] = "Cheetah",
-	[416] = "Ambulance",
-	[417] = "Leviathan",
-	[418] = "Moonbeam",
-	[419] = "Esperanto",
-	[420] = "Taxi",
-	[421] = "Washington",
-	[422] = "Bobcat",
-	[423] = "Mr Whoopee",
-	[424] = "BF Injection",
-	[425] = "Hunter",
-	[426] = "Premier",
-	[427] = "Enforcer",
-	[428] = "Securicar",
-	[429] = "Banshee",
-	[430] = "Predator",
-	[431] = "Bus",
-	[432] = "Rhino",
-	[433] = "Barracks",
-	[434] = "Hotknife",
-	[435] = "Article Trailer",
-	[436] = "Previon",
-	[437] = "Coach",
-	[438] = "Cabbie",
-	[439] = "Stallion",
-	[440] = "Rumpo",
-	[441] = "RC Bandit",
-	[442] = "Romero",
-	[443] = "Packer",
-	[444] = "Monster",
-	[445] = "Admiral",
-	[446] = "Squallo",
-	[447] = "Seasparrow",
-	[448] = "Pizzaboy",
-	[449] = "Tram",
-	[450] = "Article Trailer 2",
-	[451] = "Turismo",
-	[452] = "Speeder",
-	[453] = "Reefer",
-	[454] = "Tropic",
-	[455] = "Flatbed",
-	[456] = "Yankee",
-	[457] = "Caddy",
-	[458] = "Solair",
-	[459] = "Topfun Van (Berkley�s RC)",
-	[460] = "Skimmer",
-	[461] = "PCJ-600",
-	[462] = "Faggio",
-	[463] = "Freeway",
-	[464] = "RC Baron",
-	[465] = "RC Raider",
-	[466] = "Glendale",
-	[467] = "Oceanic",
-	[468] = "Sanchez",
-	[469] = "Sparrow",
-	[470] = "Patriot",
-	[471] = "Quad",
-	[472] = "Coastguard",
-	[473] = "Dinghy",
-	[474] = "Hermes",
-	[475] = "Sabre",
-	[476] = "Rustler",
-	[477] = "ZR-350",
-	[478] = "Walton",
-	[479] = "Regina",
-	[480] = "Comet",
-	[481] = "BMX",
-	[482] = "Burrito",
-	[483] = "Camper",
-	[484] = "Marquis",
-	[485] = "Baggage",
-	[486] = "Dozer",
-	[487] = "Maverick",
-	[488] = "SAN News Maverick",
-	[489] = "Rancher",
-	[490] = "FBI Rancher",
-	[491] = "Virgo",
-	[492] = "Greenwood",
-	[493] = "Jetmax",
-	[494] = "Hotring Racer",
-	[495] = "Sandking",
-	[496] = "Blista Compact",
-	[497] = "Police Maverick",
-	[498] = "Boxville",
-	[499] = "Benson",
-	[500] = "Mesa",
-	[501] = "RC Goblin",
-	[502] = "Hotring Racer",
-	[503] = "Hotring Racer",
-	[504] = "Bloodring Banger",
-	[505] = "Rancher",
-	[506] = "Super GT",
-	[507] = "Elegant",
-	[508] = "Journey",
-	[509] = "Bike",
-	[510] = "Mountain Bike",
-	[511] = "Beagle",
-	[512] = "Cropduster",
-	[513] = "Stuntplane",
-	[514] = "Tanker",
-	[515] = "Roadtrain",
-	[516] = "Nebula",
-	[517] = "Majestic",
-	[518] = "Buccaneer",
-	[519] = "Shamal",
-	[520] = "Hydra",
-	[521] = "FCR-900",
-	[522] = "NRG-500",
-	[523] = "HPV-1000",
-	[524] = "Cement Truck",
-	[525] = "Towtruck",
-	[526] = "Fortune",
-	[527] = "Cadrona",
-	[528] = "FBI Truck",
-	[529] = "Willard",
-	[530] = "Forklift",
-	[531] = "Tractor",
-	[532] = "Combine Harvester",
-	[533] = "Feltzer",
-	[534] = "Remington",
-	[535] = "Slamvan",
-	[536] = "Blade",
-	[537] = "Freight (Train)",
-	[538] = "Brownstreak (Train)",
-	[539] = "Vortex",
-	[540] = "Vincent",
-	[541] = "Bullet",
-	[542] = "Clover",
-	[543] = "Sadler",
-	[544] = "Firetruck LA",
-	[545] = "Hustler",
-	[546] = "Intruder",
-	[547] = "Primo",
-	[548] = "Cargobob",
-	[549] = "Tampa",
-	[550] = "Sunrise",
-	[551] = "Merit",
-	[552] = "Utility Van",
-	[553] = "Nevada",
-	[554] = "Yosemite",
-	[555] = "Windsor",
-	[556] = "Monster �A�",
-	[557] = "Monster �B�",
-	[558] = "Uranus",
-	[559] = "Jester",
-	[560] = "Sultan",
-	[561] = "Stratum",
-	[562] = "Elegy",
-	[563] = "Raindance",
-	[564] = "RC Tiger",
-	[565] = "Flash",
-	[566] = "Tahoma",
-	[567] = "Savanna",
-	[568] = "Bandito",
-	[569] = "Freight Flat Trailer (Train)",
-	[570] = "Streak Trailer (Train)",
-	[571] = "Kart",
-	[572] = "Mower",
-	[573] = "Dune",
-	[574] = "Sweeper",
-	[575] = "Broadway",
-	[576] = "Tornado",
-	[577] = "AT400",
-	[578] = "DFT-30",
-	[579] = "Huntley",
-	[580] = "Stafford",
-	[581] = "BF-400",
-	[582] = "Newsvan",
-	[583] = "Tug",
-	[584] = "Petrol Trailer",
-	[585] = "Emperor",
-	[586] = "Wayfarer",
-	[587] = "Euros",
-	[588] = "Hotdog",
-	[589] = "Club",
-	[590] = "Freight Box Trailer (Train)",
-	[591] = "Article Trailer 3",
-	[592] = "Andromada",
-	[593] = "Dodo",
-	[594] = "RC Cam",
-	[595] = "Launch",
-	[596] = "Police LS",
-	[597] = "Police SF",
-	[598] = "Police LV",
-	[599] = "Police Ranger",
-	[600] = "Picador",
-	[601] = "S.W.A.T.",
-	[602] = "Alpha",
-	[603] = "Phoenix",
-	[604] = "Glendale",
-	[605] = "Sadler",
-	[606] = "Baggage Trailer �A�",
-	[607] = "Baggage Trailer �B�",
-	[608] = "Tug Stairs Trailer",
-	[609] = "Boxville",
-	[610] = "Farm Trailer",
-	[611] = "Utility Trailer"
-}
-
-AREAS = {
+TABLE_OF_NAMES_DISTRICTS_AND_THEIR_COORDITATES = {
 	{"Avispa Country Club", -2667.810, -302.135, -28.831, -2646.400, -262.320, 71.169},
     {"Easter Bay Airport", -1315.420, -405.388, 15.406, -1264.400, -209.543, 25.406},
     {"Avispa Country Club", -2550.040, -355.493, 0.000, -2470.040, -318.493, 39.700},
@@ -896,190 +877,217 @@ AREAS = {
     {"Los Santos", 44.615, -2892.970, -242.990, 2997.060, -768.027, 900.000}
 }
 
-LIST_AREAS_IN_REGIONS = {
-	["Bone County"]={
- 		"Las Brujas",
- 		"Regular Tom",
- 		"El Castillo del Diablo",
- 		"Green Palms",
- 		"Las Payasadas",
- 		"Lil' Probe Inn",
- 		"'The Big Ear'",
- 		"Verdant Meadows",
- 		"Octane Springs",
- 		"Fort Carson",
- 		"Hunter Quarry",
- 		"Restricted Area"
- 	},
-	["San Fierro"]={
- 		"Avispa Country Club",
- 		"Easter Bay Airport",
- 		"Garcia",
- 		"Esplanade East",
- 		"Cranberry Station",
- 		"Foster Valley",
- 		"Queens",
- 		"Gant Bridge",
- 		"King's",
- 		"Downtown",
- 		"Ocean Flats",
- 		"Easter Tunnel",
- 		"Garver Bridge",
- 		"Kincaid Bridge",
- 		"Chinatown",
- 		"Esplanade North",
- 		"Battery Point",
- 		"Doherty",
- 		"City Hall",
- 		"Hashbury",
- 		"Santa Flora",
- 		"Easter Basin",
- 		"San Fierro Bay",
- 		"Paradiso",
- 		"Juniper Hill",
- 		"Juniper Hollow",
- 		"Financial",
- 		"Calton Heights",
- 		"Palisades",
- 		"Missionary Hill",
- 		"Mount Chiliad"
- 	},
-	["Los Santos"]={
- 		"East Los Santos",
- 		"Temple",
- 		"Unity Station",
- 		"Los Flores",
- 		"Downtown Los Santos",
- 		"Market Station",
- 		"Jefferson",
- 		"Mulholland",
- 		"Rodeo",
- 		"Little Mexico",
- 		"Los Santos International",
- 		"Richman",
- 		"Conference Center",
- 		"Las Colinas",
- 		"Willowfield",
- 		"Vinewood",
- 		"Verona Beach",
- 		"Commerce",
- 		"Idlewood",
- 		"Ocean Docks",
- 		"Glen Park",
- 		"Marina",
- 		"Pershing Square",
- 		"Market",
- 		"Verdant Bluffs",
- 		"East Beach",
- 		"Ganton",
- 		"El Corona",
- 		"Playa del Seville",
- 		"Santa Maria Beach"
- 	},
-	["Tierra Robada"]={
- 		"Aldea Malvada",
- 		"Kincaid Bridge",
- 		"Garver Bridge",
- 		"Bayside Marina",
- 		"Robada Intersection",
- 		"Las Barrancas",
- 		"Sherman Reservoir",
- 		"Valle Ocultado",
- 		"Bayside Tunnel",
- 		"Gant Bridge",
- 		"El Quebrados",
- 		"Arco del Oeste",
- 		"The Sherman Dam",
- 		"Bayside",
- 		"San Fierro Bay"
- 	},
-	["Red County"]={
- 		"Montgomery Intersection",
- 		"Frederick Bridge",
- 		"Montgomery",
- 		"Hampton Barns",
- 		"Martin Bridge",
- 		"The Mako Span",
- 		"Mulholland",
- 		"Fallow Bridge",
- 		"Easter Bay Chemicals",
- 		"Richman",
- 		"Hilltop Farm",
- 		"Easter Bay Airport",
- 		"Hankypanky Point",
- 		"Flint Water",
- 		"Blueberry",
- 		"Dillimore",
- 		"Fisher's Lagoon",
- 		"San Andreas Sound",
- 		"Fallen Tree",
- 		"Palomino Creek",
- 		"Fern Ridge",
- 		"North Rock",
- 		"The Panopticon"
- 	},
-	["Flint County"]={
- 		"Easter Bay Chemicals",
- 		"Beacon Hill",
- 		"Flint Intersection",
- 		"Leafy Hollow",
- 		"The Farm",
- 		"Flint Range",
- 		"Los Santos Inlet",
- 		"Back o Beyond"
- 	},
-	["Las Venturas"]={
- 		"LVA Freight Depot",
- 		"Blackfield Intersection",
- 		"Starfish Casino",
- 		"Linden Station",
- 		"Yellow Bell Station",
- 		"Julius Thruway West",
- 		"Julius Thruway North",
- 		"Redsands West",
- 		"The Strip",
- 		"Blackfield Chapel",
- 		"Yellow Bell Gol Course",
- 		"Las Venturas Airport",
- 		"Julius Thruway East",
- 		"Julius Thruway South",
- 		"Roca Escalante",
- 		"Redsands East",
- 		"Greenglass College",
- 		"Caligula's Palace",
- 		"Pilgrim",
- 		"The Clown's Pocket",
- 		"Prickle Pine",
- 		"Rockshore West",
- 		"The Visage",
- 		"The High Roller",
- 		"Last Dime Motel",
- 		"The Pink Swan",
- 		"Linden Side",
- 		"The Four Dragons Casino",
- 		"Blackfield",
- 		"Pirates in Men's Pants",
- 		"Whitewood Estates",
- 		"Royal Casino",
- 		"K.A.C.C. Military Fuels",
- 		"Harry Gold Parkway",
- 		"Randolph Industrial Estate",
- 		"Sobell Rail Yards",
- 		"The Emerald Isle",
- 		"Pilson Intersection",
- 		"Spinybed",
- 		"Rockshore East",
- 		"The Camel's Toe",
- 		"Old Venturas Strip",
- 		"Creek",
- 		"Come-A-Lot"
-	},
-	["Whetstone"]={
- 		"Shady Cabin",
- 		"Foster Valley",
- 		"Shady Creeks",
- 		"Angel Pine",
- 		"Mount Chiliad"
- 	}	
+VEHICLES_NAMES_BY_ID = {
+	[400] = "Landstalker",
+	[401] = "Bravura",
+	[402] = "Buffalo",
+	[403] = "Linerunner",
+	[404] = "Perenniel",
+	[405] = "Sentinel",
+	[406] = "Dumper",
+	[407] = "Firetruck",
+	[408] = "Trashmaster",
+	[409] = "Stretch",
+	[410] = "Manana",
+	[411] = "Infernus",
+	[412] = "Voodoo",
+	[413] = "Pony",
+	[414] = "Mule",
+	[415] = "Cheetah",
+	[416] = "Ambulance",
+	[417] = "Leviathan",
+	[418] = "Moonbeam",
+	[419] = "Esperanto",
+	[420] = "Taxi",
+	[421] = "Washington",
+	[422] = "Bobcat",
+	[423] = "Mr Whoopee",
+	[424] = "BF Injection",
+	[425] = "Hunter",
+	[426] = "Premier",
+	[427] = "Enforcer",
+	[428] = "Securicar",
+	[429] = "Banshee",
+	[430] = "Predator",
+	[431] = "Bus",
+	[432] = "Rhino",
+	[433] = "Barracks",
+	[434] = "Hotknife",
+	[435] = "Article Trailer",
+	[436] = "Previon",
+	[437] = "Coach",
+	[438] = "Cabbie",
+	[439] = "Stallion",
+	[440] = "Rumpo",
+	[441] = "RC Bandit",
+	[442] = "Romero",
+	[443] = "Packer",
+	[444] = "Monster",
+	[445] = "Admiral",
+	[446] = "Squallo",
+	[447] = "Seasparrow",
+	[448] = "Pizzaboy",
+	[449] = "Tram",
+	[450] = "Article Trailer 2",
+	[451] = "Turismo",
+	[452] = "Speeder",
+	[453] = "Reefer",
+	[454] = "Tropic",
+	[455] = "Flatbed",
+	[456] = "Yankee",
+	[457] = "Caddy",
+	[458] = "Solair",
+	[459] = "Topfun Van (Berkley’s RC)",
+	[460] = "Skimmer",
+	[461] = "PCJ-600",
+	[462] = "Faggio",
+	[463] = "Freeway",
+	[464] = "RC Baron",
+	[465] = "RC Raider",
+	[466] = "Glendale",
+	[467] = "Oceanic",
+	[468] = "Sanchez",
+	[469] = "Sparrow",
+	[470] = "Patriot",
+	[471] = "Quad",
+	[472] = "Coastguard",
+	[473] = "Dinghy",
+	[474] = "Hermes",
+	[475] = "Sabre",
+	[476] = "Rustler",
+	[477] = "ZR-350",
+	[478] = "Walton",
+	[479] = "Regina",
+	[480] = "Comet",
+	[481] = "BMX",
+	[482] = "Burrito",
+	[483] = "Camper",
+	[484] = "Marquis",
+	[485] = "Baggage",
+	[486] = "Dozer",
+	[487] = "Maverick",
+	[488] = "SAN News Maverick",
+	[489] = "Rancher",
+	[490] = "FBI Rancher",
+	[491] = "Virgo",
+	[492] = "Greenwood",
+	[493] = "Jetmax",
+	[494] = "Hotring Racer",
+	[495] = "Sandking",
+	[496] = "Blista Compact",
+	[497] = "Police Maverick",
+	[498] = "Boxville",
+	[499] = "Benson",
+	[500] = "Mesa",
+	[501] = "RC Goblin",
+	[502] = "Hotring Racer",
+	[503] = "Hotring Racer",
+	[504] = "Bloodring Banger",
+	[505] = "Rancher",
+	[506] = "Super GT",
+	[507] = "Elegant",
+	[508] = "Journey",
+	[509] = "Bike",
+	[510] = "Mountain Bike",
+	[511] = "Beagle",
+	[512] = "Cropduster",
+	[513] = "Stuntplane",
+	[514] = "Tanker",
+	[515] = "Roadtrain",
+	[516] = "Nebula",
+	[517] = "Majestic",
+	[518] = "Buccaneer",
+	[519] = "Shamal",
+	[520] = "Hydra",
+	[521] = "FCR-900",
+	[522] = "NRG-500",
+	[523] = "HPV-1000",
+	[524] = "Cement Truck",
+	[525] = "Towtruck",
+	[526] = "Fortune",
+	[527] = "Cadrona",
+	[528] = "FBI Truck",
+	[529] = "Willard",
+	[530] = "Forklift",
+	[531] = "Tractor",
+	[532] = "Combine Harvester",
+	[533] = "Feltzer",
+	[534] = "Remington",
+	[535] = "Slamvan",
+	[536] = "Blade",
+	[537] = "Freight (Train)",
+	[538] = "Brownstreak (Train)",
+	[539] = "Vortex",
+	[540] = "Vincent",
+	[541] = "Bullet",
+	[542] = "Clover",
+	[543] = "Sadler",
+	[544] = "Firetruck LA",
+	[545] = "Hustler",
+	[546] = "Intruder",
+	[547] = "Primo",
+	[548] = "Cargobob",
+	[549] = "Tampa",
+	[550] = "Sunrise",
+	[551] = "Merit",
+	[552] = "Utility Van",
+	[553] = "Nevada",
+	[554] = "Yosemite",
+	[555] = "Windsor",
+	[556] = "Monster «A»",
+	[557] = "Monster «B»",
+	[558] = "Uranus",
+	[559] = "Jester",
+	[560] = "Sultan",
+	[561] = "Stratum",
+	[562] = "Elegy",
+	[563] = "Raindance",
+	[564] = "RC Tiger",
+	[565] = "Flash",
+	[566] = "Tahoma",
+	[567] = "Savanna",
+	[568] = "Bandito",
+	[569] = "Freight Flat Trailer (Train)",
+	[570] = "Streak Trailer (Train)",
+	[571] = "Kart",
+	[572] = "Mower",
+	[573] = "Dune",
+	[574] = "Sweeper",
+	[575] = "Broadway",
+	[576] = "Tornado",
+	[577] = "AT400",
+	[578] = "DFT-30",
+	[579] = "Huntley",
+	[580] = "Stafford",
+	[581] = "BF-400",
+	[582] = "Newsvan",
+	[583] = "Tug",
+	[584] = "Petrol Trailer",
+	[585] = "Emperor",
+	[586] = "Wayfarer",
+	[587] = "Euros",
+	[588] = "Hotdog",
+	[589] = "Club",
+	[590] = "Freight Box Trailer (Train)",
+	[591] = "Article Trailer 3",
+	[592] = "Andromada",
+	[593] = "Dodo",
+	[594] = "RC Cam",
+	[595] = "Launch",
+	[596] = "Police LS",
+	[597] = "Police SF",
+	[598] = "Police LV",
+	[599] = "Police Ranger",
+	[600] = "Picador",
+	[601] = "S.W.A.T.",
+	[602] = "Alpha",
+	[603] = "Phoenix",
+	[604] = "Glendale",
+	[605] = "Sadler",
+	[606] = "Baggage Trailer «A»",
+	[607] = "Baggage Trailer «B»",
+	[608] = "Tug Stairs Trailer",
+	[609] = "Boxville",
+	[610] = "Farm Trailer",
+	[611] = "Utility Trailer"
 }
--- vk.com/donaks

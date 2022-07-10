@@ -1,0 +1,121 @@
+{
+    "configInfo": {
+        "name": "Revent RP",
+        "authors": "donaks",
+        "version": "1.0",
+        "versionNumber": 1,
+        "dateLastUpdate": "32 мая 2021 года"
+    },
+    "serverInfo": {
+        "name": "Revent Role Play"
+    },
+    "events": {
+        "find": {
+            "chatMessage": " Вы установили координаты @nick, доступ - 25 секунд!",
+            "idMarker": 1
+        },
+        "call911": {
+            "chatMessage": "^ %{1be37f%}%[Диспетчер 911%]: Поступил вызов от .+%. Причина: %'@text%', Местоположение: .+%(@area%)",
+			"isUseRegEx": true
+        },
+        "radio": {
+            "chatMessage": " [R] @zvanieandnick [@id]: @text"
+        },
+        "userEvents": [
+            {
+				"name": "/sos",
+				"chatMessage": " [Дежурный]: @nick нуждается в поддержке, он отмечен красным маркером на карте",
+				"idMarker": 1,
+				"soundList": [
+					"suspect/Head to a 10-.wav",
+					"ten_codes/91 in.wav",
+					"@area"
+				],
+				"isPlayRadioOn": true
+			},
+			{
+				"name": "Ограбление закусочных",
+				"chatMessage": " [Диспетчер]: Поступил вызов от Закусочной №@area! В ней совершается",
+				"soundList": [
+					"suspect/We got a 10-.wav",
+					"ten_codes/24 in.wav",
+					"@area"
+				],
+				"dictionaryOfReplacingTheValueOfVariable": {
+					"area": {
+						"1": "Redsands East",
+						"3": "Mulholland",
+						"4": "Old Venturas",
+						"5": "Verona",
+						"6": "Financial",
+						"7": "Calton Heights",
+						"8": "Garcia",
+						"9": "City Hall",
+						"11": "East Los-Santos",
+						"12": "Willowfield",
+						"13": "Downtown",
+						"14": "Financial",
+						"15": "Tierra Robada",
+						"16": "The Emerald Isle",
+						"17": "Old Venturas",
+						"18": "Idlewood",
+						"19": "Montgomery",
+						"20": "Starfish Casino",
+						"21": "Fort Carson",
+						"22": "Blueberry"
+					}
+				},
+				"isPlayRadioOn": true
+			},
+			/*
+			{
+				"name": "/pt с подозреваемым в т/с",
+				"chatMessage": " [PURSUIT INFO] @ktoto начал погоню за @nick(@vehname). Для помощи - /join @id",
+				"sounds": [
+					"DISP.words.respondTo10",
+					"DISP.codes.37",
+					"DISP.suspect.suspect2",
+					"DISP.words.onA",
+					"@veh"
+				],
+				"isPlayRadioOn": true
+			},
+			{
+				"name": "/pt с подозреваемым пешком",
+				"pattern": " [PURSUIT INFO] @ktoto начал погоню за @nick. Для помощи - /join @id",
+				"useRegexInPattern": false,
+				"sounds": [
+					"DISP.words.respondTo10",
+					"DISP.codes.37",
+					"DISP.suspect.suspect2",
+					"DISP.suspect.onFoot"
+				],
+				"isPlayRadioOn": true
+			},
+			{
+				"name": "Камеры наблюдения",
+				"pattern": " [Диспетчер]: @nick был замечен камерами наблюдения(Район: @area | Камера: @cum). Транспорт: @vehname",
+				"useRegexInPattern": false,
+				"sounds": [
+					"DISP.suspect.lastSeen",
+					"DISP.words.inA",
+					"@area",
+					"DISP.words.onA",
+					"@veh"
+				],
+				"isPlayRadioOn": true
+			},
+			{
+				"name": "Камеры наблюдения (пешком)",
+				"pattern": " [Диспетчер]: @nick был замечен камерами наблюдения(Район: @area | Камера: @cum)",
+				"useRegexInPattern": false,
+				"sounds": [
+					"DISP.suspect.lastSeen",
+					"DISP.words.inA",
+					"@area"
+				],
+				"isPlayRadioOn": true
+			} */
+        ]
+    }
+}

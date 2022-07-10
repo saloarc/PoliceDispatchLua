@@ -1,0 +1,58 @@
+{
+    "configInfo": {
+        "name": "Diamond RP",
+        "authors": "donaks, Vladimir Shabanov (Brothers in Company)",
+        "version": "",
+        "versionNumber": 0,
+        "dateLastUpdate": ""
+    },
+    "serverInfo": {
+        "name": "Diamond Role Play"
+    },
+    "extraVariableValues": {
+        "areas": {
+            "ls": "Los Santos",
+            "sf": "San Fierro",
+            "lv": "Las Venturas"
+        }
+    },
+    "events": {
+        "find": {
+            "chatMessage": "• {00CC00}[Успешно] {ffffff}Местоположение игрока отмечено на карте.",
+            "idMarker": 1
+        },
+        "call911": {
+            "chatMessage": [
+                "[Внимание] @nick вызывает полицию/фбр (@area). Чтобы принять вызов",
+                "[Внимание] Предполагаемый нарушитель: @ktoto. Причина: @text",
+                "[Внимание] Причина: @text"
+            ]
+        },
+        "radio": {
+            "chatMessage": "^%[R%] [^%(]+ %a+_%a+%[%d+%]: @text",
+            "isUseRegEx": true
+        },
+        "user": [
+            {
+                "name": "/su",
+                "chatMessage": "[Внимание] @nick объявлен в розыск (@statya). Причина: @reason.",
+                "soundList": [
+                    "suspect/We got a 10-.wav",
+                    "@randomtencodewithin",
+                    "@randomareaincityplayer"
+                ],
+                "isPlayRadioOn": true
+            },
+            {
+                "name": "/pdhelp",
+                "chatMessage": "[Внимание] {FFD966}@nick{007FFF} просит помощи, введите {FFD966}/helplist",
+                "soundList": [
+                    "suspect/we got a 10-.wav",
+                    "ten_codes/24 in.wav",
+                    "@cityplayer"
+                ],
+                "isPlayRadioOn": true
+            }
+        ]
+    }
+}
