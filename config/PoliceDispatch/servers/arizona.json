@@ -1,7 +1,7 @@
 {
     "configInfo": {
         "name": "Arizona RP",
-        "authors": "donaks, ",
+        "authors": "hobby, ?",
         "version": "",
         "versionNumber": 0,
         "dateLastUpdate": ""
@@ -47,10 +47,6 @@
                     "suspect/Respond to a 10-.wav",
                     "@randomtencodewithin",
                     "@area",
-                    // Воспроизводит, если игрок в зоне прорисовки:
-                    // "Suspect on a *color* *veh*" или "Suspect on foot".
-                    // А если нет в прорисовке, то игнорируется.
-                    // Доступно только в user эвентах.
                     "@suspectveh"
                 ],
 

@@ -1,10 +1,11 @@
 {
     "configInfo": {
         "name": "Evolve RP",
-        "authors": "donaks, ",
-        "version": "1.0",
-        "versionNumber": 1,
-        "dateLastUpdate": ""
+		"description": "Озвучка тен-кодов в рации",
+        "authors": "hobby",
+		"thanks": "Виталию Крючкову",
+        "version": 1,
+        "dateLastUpdate": "23 декабря 2020 года"
     },
     "serverInfo": {
         "name": "Evolve RP"

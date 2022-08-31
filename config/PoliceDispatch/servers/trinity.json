@@ -1,9 +1,9 @@
 {
     "configInfo": {
         "name": "Trinity RP",
-        "description": "Включает в себя и озвучку вызовов 911 в отделение медиков.",
-        "authors": "donaks, Владимир Хоферсон",
-        "version": "2.0",
+        "description": "Озвучка полицейских событий + озвучка вызовов 911 для фракции здравоохранения.",
+        "authors": "hobby",
+		"thanks": "Владимиру Хоферсону",
         "versionNumber": 2,
         "dateLastUpdate": "8 мая 2021 года"
     },
@@ -18,7 +18,6 @@
             "Police RC": 598
         },
         "areas": {
-            // Помещения Trinity RP
             "новостное агентство los santos": "Market",
 			"госпиталь all saints": "Market",
             "департамент полиции los santos": "Commerce",

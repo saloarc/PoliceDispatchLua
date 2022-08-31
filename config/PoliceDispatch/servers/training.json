@@ -1,10 +1,10 @@
 {
     "configInfo": {
         "name": "Training RP",
-        "authors": "donaks, Роман Шуруповёрт",
-		"version": "2.0",
+        "authors": "hobby",
+		"thanks": "Роману Шуруповёрту",
 		"versionNumber": 2,
-		"dateLastUpdate": ""
+		"dateLastUpdate": "16 апреля 2021 года"
     },
 	"serverInfo": {
 		"name": "TRAINING"
@@ -45,8 +45,6 @@
 				"isPlayRadioOn": true
 			}
 		],
-		// По умолчанию строка на соответствие user эвентам проверяется самымой первой
-		// Если же "userNotPriority": true, то они проверяются после всех остальных
 		"userNotPriority": true
 	}
 }

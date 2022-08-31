@@ -1,10 +1,10 @@
 {
     "configInfo": {
         "name": "Diamond RP",
-        "authors": "donaks, Vladimir Shabanov (Brothers in Company)",
-        "version": "",
-        "versionNumber": 0,
-        "dateLastUpdate": ""
+        "authors": "donaks",
+		"thanks": "Владимиру Brothers in Comnany",
+        "version": 1,
+        "dateLastUpdate": "7 декабря 2020 года"
     },
     "serverInfo": {
         "name": "Diamond Role Play"

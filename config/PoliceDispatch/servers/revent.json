@@ -1,10 +1,9 @@
 {
     "configInfo": {
         "name": "Revent RP",
-        "authors": "donaks",
-        "version": "1.0",
+        "authors": "hobby",
         "versionNumber": 1,
-        "dateLastUpdate": "32 мая 2021 года"
+        "dateLastUpdate": "31 мая 2021 года"
     },
     "serverInfo": {
         "name": "Revent Role Play"
@@ -67,7 +66,6 @@
 				},
 				"isPlayRadioOn": true
 			},
-			/*
 			{
 				"name": "/pt с подозреваемым в т/с",
 				"chatMessage": " [PURSUIT INFO] @ktoto начал погоню за @nick(@vehname). Для помощи - /join @id",
@@ -115,7 +113,7 @@
 					"@area"
 				],
 				"isPlayRadioOn": true
-			} */
+			}
         ]
     }
 }

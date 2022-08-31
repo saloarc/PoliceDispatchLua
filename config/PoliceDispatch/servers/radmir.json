@@ -1,6 +1,11 @@
 {
     "configInfo": {
-        "name": "Radmir RP"
+        "name": "Radmir RP",
+		"author": "hobby",
+		"description": "Возможно, не работает. Если это так, напишите автору скрипта",
+		"thanks": "Нике Яхаевой",
+		"versionNumber": 1,
+		"dateLastUpdate": "10 апреля 2021 года"
     },
     "serverInfo": {
         "name": "Radmir Role Play"
