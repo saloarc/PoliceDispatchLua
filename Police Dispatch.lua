@@ -2,8 +2,8 @@
 script_name("PD Radio")
 script_author("donaks")
 script_url("github.com/don-aks/PoliceDispatchLua/")
-script_version("2.1.2-gambit-fix")
-script_version_number(7)
+script_version("2.1.3-gambit-fix")
+script_version_number(8)
 script_properties("work-in-pause")
 
 require "lib.moonloader"
