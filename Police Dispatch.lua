@@ -1,5 +1,5 @@
-script_name("PD Radio")
-script_author("donaks")
+script_name("Police Dispath")
+script_author("hobby")
 script_url("github.com/don-aks/PoliceDispatchLua/")
 script_version("2.1.3-gambit-fix")
 script_version_number(8)
@@ -11,6 +11,7 @@ local inicfg = require "inicfg"
 local memory = require "memory"
 local json = require ("dkjson")
 local encoding = require "encoding"
+local thanks = ""
 
 encoding.default = "CP1251"
 local u8 = encoding.UTF8
@@ -28,7 +29,7 @@ local IS_CLEAN_QUEUE = false
 
 
 function chatMessage(text)
-	return sampAddChatMessage(u8:decode("[PD Radio v"..thisScript().version.."]: {ffffff}"..text), 0xFF3523)
+	return sampAddChatMessage(u8:decode("[Police Dispath]: {ffffff}"..text), 0xFF3523)
 end
 
 function mainMenu()
@@ -160,9 +161,9 @@ function main()
 	sampRegisterChatCommand("pdradio", mainMenu)
 
 	if INI.INI.state then
-		chatMessage("Загружен. Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("Загружен. Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}hobby.{FFFFFF}.")
 	else
-		chatMessage("Отключен! Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("Отключен! Управление скриптом: {32B4FF}/pdradio{FFFFFF}. Автор: {32B4FF}hobby.{FFFFFF}.")
 	end
 
 	local radioVolume = memory.read(0xBA6798, 1)
@@ -225,13 +226,13 @@ function main()
 					chatMessage("User-эвентов не найдено!")
 					mainMenu()
 				else
-					sampShowDialog(20002, u8:decode("Отключение user-эвентов"), u8:decode(userEvents),
+					sampShowDialog(20002, u8:decode("Отключение user-эвентов - Police Dispath v"..thisScript().version), u8:decode(userEvents),
 						btn1, btn2, 4)
 				end
 			elseif list == 9 then
 				text = "Введите нужную строку из чата для проверки и воспроизведения:\n"..
 				"Для задания цвета строки используйте вначале R: (цвет без #) (Строка)."
-				sampShowDialog(20003, u8:decode("Проверка паттерна"), u8:decode(text), btn1, btn2, 1)
+				sampShowDialog(20003, u8:decode("Проверка паттерна - Police Dispath v"..thisScript().version), u8:decode(text), btn1, btn2, 1)
 			elseif list == 10 then
 				IS_CLEAN_QUEUE = true
 				wait(100)
