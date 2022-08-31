@@ -1,23 +1,28 @@
 -- encoding: cyrillic (windows 1251)
-script_name('PD Radio')
-script_author('donaks')
+script_name("PD Radio")
+script_author("donaks")
 script_url("github.com/don-aks/PoliceDispatchLua/")
-script_version('2.1.1-patch')
-script_version_number(6)
+script_version("2.2")
+script_version_number(8)
 script_properties("work-in-pause")
 
-require 'lib.moonloader'
-local download_status = require('lib.moonloader').download_status
-local inicfg = require 'inicfg'
-local memory = require 'memory'
+require "lib.moonloader"
+local download_status = require("lib.moonloader").download_status
+local inicfg = require "inicfg"
+local memory = require "memory"
+local json = require ("dkjson")
+local encoding = require "encoding"
 
--- дшъё фыџ 027
+encoding.default = "CP1251"
+local u8 = encoding.UTF8
+
+-- аЄаИаКб аДаЛб 027
 package.path = package.path..";"..getWorkingDirectory().."\\?.lua"
 
-require 'config.PoliceDispatch.config'
+require "config.PoliceDispatch.config"
 
 local DISP_IS_SPEAK = false
-local VARS = {}
+local VARS_AND_VALUES = {}
 local MAP_ICONS = {}
 local CFG, INI
 
@@ -26,20 +31,20 @@ local IS_CLEAN_QUEUE = false
 
 
 function chatMessage(text)
-	return sampAddChatMessage("[PD Radio v"..thisScript().version.."]: {ffffff}"..text, 0xFF3523)
+	return sampAddChatMessage(u8:decode("[PD Radio v"..thisScript().version.."]: {ffffff}"..text), 0xFF3523)
 end
 
 local v = getMoonloaderVersion()
 if v < 26 then
-	chatMessage("Трјр тх№ёшџ moonloader эх яюффх№цштрхђёџ. гёђрэютшђх 026-beta шыш тћјх.")
-	chatMessage("бёћыър эр ёърїштрэшх сюыхх эютющ тх№ёшш: https://www.blast.hk/threads/13305/")
+	chatMessage("ааАбаА аВаЕббаИб moonloader аНаЕ аПаОаДаДаЕбаЖаИаВаАаЕббб. аЃббаАаНаОаВаИбаЕ 026-beta аИаЛаИ аВббаЕ.")
+	chatMessage("аЁббаЛаКаА аНаА баКаАбаИаВаАаНаИаЕ аБаОаЛаЕаЕ аНаОаВаОаЙ аВаЕббаИаИ: https://www.blast.hk/threads/13305/")
 	thisScript():unload()
 	return
 end
 
-local res, sampev = pcall(require, 'lib.samp.events')
+local res, sampev = pcall(require, "lib.samp.events")
 if not res then
-	chatMessage("гёђрэютшђх SAMP.LUA! {32B4FF}blast.hk/threads/59503{FFFFFF}.")
+	chatMessage("аЃббаАаНаОаВаИбаЕ SAMP.LUA! {32B4FF}blast.hk/threads/59503{FFFFFF}.")
 	thisScript():unload()
 	return
 end
@@ -47,67 +52,31 @@ end
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-	while sampGetCurrentServerName() == 'SA-MP' do wait(100) end
+	while sampGetCurrentServerName() == "SA-MP" do wait(100) end
 
-	-- Яюфу№ѓчър .json
-	local f = io.open(PATH.config.."config.json", 'r')
-	-- ѓфрыџхь ъюььхэђр№шш
-	local f_text = f:read('*a'):gsub("//[^\n]+", ''):gsub("/%*(.-)%*/", '')
-
-	res, CFG = pcall(decodeJson, f_text)
-	if not res then
-		local f = io.open(PATH.config.."json_err.log", 'w')
-		f:write(f_text)
-		f:close()
-
-		print("вхъёђ .json єрщыр, ъюђю№ћщ їшђры ёъ№шяђ эрѕюфшђёџ т moonloader/config/PoliceDispatch/json_err.log")
-		chatMessage("Эх ѓфрыюёќ ёїшђрђќ .json єрщы! Яюф№юсэюёђш т moonloader.log.")
-
-		decodeJson(f_text)
-		thisScript():unload()
-		return
-	end
-	f:close()
-
-	if not CFG then
-		local f = io.open(PATH.config.."json_err.log", 'w')
-		f:write(f_text)
-		f:close()
-
-		print("вхъёђ .json єрщыр, ъюђю№ћщ їшђры ёъ№шяђ эрѕюфшђёџ т moonloader/config/PoliceDispatch/json_err.log")
-		chatMessage("Эх ѓфрыюёќ ёїшђрђќ .json єрщы! Яюф№юсэюёђш т moonloader.log.")
-		thisScript():unload()
-		return
-	end
-
-
-	local serverName = sampGetCurrentServerName()
+	local currentServerName = sampGetCurrentServerName()
 	local ip, port = sampGetCurrentServerAddress()
-	local serverIP = ip..":"..port
+	local currentServerIP = ip..":"..port
+	local filesHandle, configFileName = findFirstFile(PATH.config.."servers/*.json")
+	for _ = 1, 100000 do
+		configFile = io.open(PATH.config.."servers/"..configFileName, "r")
+		local config = json.decode(configFile:read("*a"))
 
-	local isFindServer = false
-	-- Яюфсю№ эѓцэюую ёх№тх№р
-	for _, server in ipairs(CFG.servers) do
-		if server.server.ip == serverIP or serverName:find(server.server.name, 1, true) then
-			-- ёюхфшэџхь уыртэћщ config ш
-			-- ъюэєшу ёх№тх№р фыџ ѓфюсёђтр
-			-- CFG -> config, call, find ...
-			local c = server
-			c.config = CFG.config
-			CFG = c
-
-			isFindServer = true
+		if isValueIsInArray(currentServerIP, toTable(config.serverInfo.ip)) or currentServerName:find(config.serverInfo.name, 1, true) then
+			CFG = config
 			break
 		end
+		configFileName = findNextFile(filesHandle)
+		if not configFileName then break end
 	end
+	print(configFileName)
+	-- chatMessage("ааЕ баДаАаЛаОбб ббаИбаАбб .json баАаЙаЛ! ааОаДбаОаБаНаОббаИ аВ moonloader.log.")
+	
+	-- print("ааАаНаНаОаГаО баЕбаВаЕбаА аНаЕ аНаАаЙаДаЕаНаО аВ аКаОаНбаИаГаЕ. ааАаВаЕббаАб баАаБаОбб баКбаИаПбаА.")
+	-- thisScript():unload()
+	-- return
 
-	if not isFindServer then
-		print("Фрээюую ёх№тх№р эх эрщфхэю т ъюэєшух. Чртх№јрў №рсюђѓ ёъ№шяђр.")
-		thisScript():unload()
-		return
-	end
-
-	-- Яюфу№ѓчър .ini
+	-- ааОаДаГббаЗаКаА .ini
 	INI = inicfg.load({
 		INI={
 			state=true,
@@ -116,20 +85,22 @@ function main()
 			callsVolume=3,
 			findVolume=3,
 			radioVolume=3,
-			userVolume=3
+			userVolume=3,
+			radioOnSound="radio_on.wav",
+			radioOffSound="radio_on.wav"
 		}
-	}, PATH.ini)
+	}, PATH.config.."config.ini")
 
-	-- Юсэютыхэшх тъыўїхэшщ/юђъыўїхэшщ 
-	-- яюыќчютрђхыќёъшѕ §тхэђют
+	-- ааБаНаОаВаЛаЕаНаИаЕ аВаКаЛббаЕаНаИаЙ/аОбаКаЛббаЕаНаИаЙ 
+	-- аПаОаЛбаЗаОаВаАбаЕаЛббаКаИб баВаЕаНбаОаВ
 	local tUser = {}
-	if CFG.user then
-		for i, it in ipairs(CFG.user) do
+	if CFG.events.user then
+		for i, it in ipairs(CFG.events.user) do
 			tUser[i] = true
 		end
 	end
 
-	local keyServer = CFG.name.."_UserEvents"
+	local keyServer = CFG.configInfo.name.."_UserEvents"
 	if #tUser > 0 then
 		if not INI[keyServer] or #tUser ~= #INI[keyServer] then
 			INI[keyServer] = tUser
@@ -137,88 +108,340 @@ function main()
 	end
 
 	saveIni()
+	if INI.INI.isCheckUpdates then
+		local fpath = "%TEMP%/Police Dispath.lua"
+		downloadUrlToFile(
+			"https://raw.githubusercontent.com/don-aks/PoliceDispatchLua/main/Police%20Dispatch.lua", 
+			fpath,
+			function(_, status, _, _)
+				if status == download_status.STATUS_ENDDOWNLOADDATA then
+					if doesFileExist(fpath) then
+						local f = io.open(fpath, "r")
+						local f_text = f:read("*a")
+						f:close()
+						local versNum = string.match(f_text, "script_version_number%s*%((%d+)%)")
 
-	checkUpdates()
-	sampRegisterChatCommand('pdradio', mainMenu)
+						if versNum and tonumber(versNum) > thisScript().version_num then
+							local versStr = string.match(f_text, "script_version%s*%([\"'](.-)[\"']%)")
+							chatMessage("ааНаИаМаАаНаИаЕ! ааОбббаПаНаО аОаБаНаОаВаЛаЕаНаИаЕ {32B4FF}v"..versStr.."{ffffff}.")
+							chatMessage("ааЛб аПаЕбаЕбаОаДаА аНаА бббаАаНаИбб баКбаИаПбаА аИбаПаОаЛбаЗбаЙбаЕ аМаЕаНб {32B4FF}/pdradio{ffffff}.")
+						end
+					end
+				end
+			end
+		)
+	end
+
+	sampRegisterChatCommand("pdradio", mainMenu)
 
 	if INI.INI.state then
-		chatMessage("Чру№ѓцхэ. гя№ртыхэшх ёъ№шяђюь: {32B4FF}/pdradio{FFFFFF}. Ртђю№: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("ааАаГббаЖаЕаН. аЃаПбаАаВаЛаЕаНаИаЕ баКбаИаПбаОаМ: {32B4FF}/pdradio{FFFFFF}. ааВбаОб: {32B4FF}vk.com/donaks{FFFFFF}.")
 	else
-		chatMessage("Юђъыўїхэ! гя№ртыхэшх ёъ№шяђюь: {32B4FF}/pdradio{FFFFFF}. Ртђю№: {32B4FF}vk.com/donaks{FFFFFF}.")
+		chatMessage("абаКаЛббаЕаН! аЃаПбаАаВаЛаЕаНаИаЕ баКбаИаПбаОаМ: {32B4FF}/pdradio{FFFFFF}. ааВбаОб: {32B4FF}vk.com/donaks{FFFFFF}.")
 	end
 
-	local radioVol = memory.read(0xBA6798, 1)
-	if INI.INI.state and radioVol == 0 then
-		chatMessage("Тэшьрэшх! Тъыўїшђх №рфшю т эрёђ№ющърѕ фыџ ђюую, їђюсћ ёъ№шяђ чр№рсюђры ш ях№хчрщфшђх т шу№ѓ, хёыш чтѓъ эх яюџтшђёџ.")
+	local radioVolume = memory.read(0xBA6798, 1)
+	if INI.INI.state and radioVolume == 0 then
+		chatMessage("ааНаИаМаАаНаИаЕ! ааКаЛббаИбаЕ баАаДаИаО аВ аНаАбббаОаЙаКаАб аДаЛб баОаГаО, ббаОаБб баКбаИаПб аЗаАбаАаБаОбаАаЛ аИ аПаЕбаЕаЗаАаЙаДаИбаЕ аВ аИаГбб, аЕбаЛаИ аЗаВбаК аНаЕ аПаОбаВаИббб.")
 	end
-
 
 	while true do
 		wait(20)
-		checkDialogsRespond()
-
-		if not soundInAFK then
+		if not INI.INI.soundInAFK then
 			if not TIME_ENTER_AFK and isGamePaused() then
 				TIME_ENTER_AFK = os.clock()
 			elseif TIME_ENTER_AFK and not isGamePaused() then
 				TIME_ENTER_AFK = nil
 			end
 		end
+
+		local btn1 = u8:decode("абаБбаАбб")
+		local btn2 = u8:decode("абаМаЕаНаА")
+		local result, button, list, _ = sampHasDialogRespond(20000)
+		if result and button == 1 then
+			listMainMenu = list
+			if list == 0 then
+				INI.INI.state = not INI.INI.state
+				saveIni()
+				mainMenu()
+			elseif list == 1 then
+				INI.INI.isCheckUpdates = not INI.INI.isCheckUpdates
+				saveIni()
+				mainMenu()
+			elseif list == 2 then
+				INI.INI.soundInAFK = not INI.INI.soundInAFK
+				saveIni()
+				mainMenu()
+				if not INI.INI.soundInAFK then
+					chatMessage("аЂаЕаПаЕбб аДаИбаПаЕббаЕб аНаЕ аБбаДаЕб аОаЗаВббаИаВаАбб баОаБббаИб, аКаОбаОббаЕ аПбаОаИаЗаОбаЛаИ, аКаОаГаДаА аВб аБбаЛаИ аВ ааЄа аБаОаЛббаЕ 2б аМаИаНбб.")
+				end
+			elseif list == 3 then
+				sampShowDialog(20001, u8:decode("абаОаМаКаОббб {FF4400}аВбаЗаОаВаОаВ 911:", "абаЛаИ аВб баОбаИбаЕ аОбаКаЛббаИбб аОаЗаВббаКб, аВаВаЕаДаИбаЕ 0."), 
+					btn1, btn2, 1)
+			elseif list == 4 then
+				sampShowDialog(20001, u8:decode("абаОаМаКаОббб {ABCDEF}/find:", "абаЛаИ аВб баОбаИбаЕ аОбаКаЛббаИбб аОаЗаВббаКб, аВаВаЕаДаИбаЕ 0."), 
+					btn1, btn2, 1)
+			elseif list == 5 then
+				sampShowDialog(20001, u8:decode("абаОаМаКаОббб {8D8DFF}/r:", "абаЛаИ аВб баОбаИбаЕ аОбаКаЛббаИбб аОаЗаВббаКб, аВаВаЕаДаИбаЕ 0."), 
+					btn1, btn2, 1)
+			elseif list == 6 then
+				sampShowDialog(20001, u8:decode("абаОаМаКаОббб {66DDAA}user-баВаЕаНбаОаВ:", "абаЛаИ аВб баОбаИбаЕ аОбаКаЛббаИбб аОаЗаВббаКб, аВаВаЕаДаИбаЕ 0."), 
+					btn1, btn2, 1)
+			elseif list == 7 then
+				mainMenu()
+			elseif list == 8 then
+				local userEvents = ""
+				if INI[CFG.configInfo.name.."_UserEvents"] then
+					for i, it in ipairs(INI[CFG.configInfo.name.."_UserEvents"]) do
+						userEvents = userEvents .. CFG.events.user[i].name.."\t"..(it and "{21C90E}ааКаЛ." or "{C91A14}абаКаЛ.").."\n"
+					end
+				end
+				if userEvents == "" then
+					chatMessage("User-баВаЕаНбаОаВ аНаЕ аНаАаЙаДаЕаНаО!")
+					mainMenu()
+				else
+					sampShowDialog(20002, u8:decode("абаКаЛббаЕаНаИаЕ user-баВаЕаНбаОаВ"), u8:decode(userEvents),
+						btn1, btn2, 4)
+				end
+			elseif list == 9 then
+				text = "ааВаЕаДаИбаЕ аНбаЖаНбб бббаОаКб аИаЗ баАбаА аДаЛб аПбаОаВаЕбаКаИ аИ аВаОбаПбаОаИаЗаВаЕаДаЕаНаИб:\n"..
+				"ааЛб аЗаАаДаАаНаИб баВаЕбаА бббаОаКаИ аИбаПаОаЛбаЗбаЙбаЕ аВаНаАбаАаЛаЕ R: (баВаЕб аБаЕаЗ #) (аЁббаОаКаА)."
+				sampShowDialog(20003, u8:decode("абаОаВаЕбаКаА аПаАббаЕбаНаА"), u8:decode(text), btn1, btn2, 1)
+			elseif list == 10 then
+				IS_CLEAN_QUEUE = true
+				wait(100)
+				IS_CLEAN_QUEUE = false
+				chatMessage("абаЕбаЕаДб аВаОбаПбаОаИаЗаВаЕаДаЕаНаИб аБбаЛаА аОбаИбаЕаНаА.")
+			elseif list == 11 then
+				mainMenu()
+			elseif list == 12 then
+				os.execute("start https://github.com/don-aks/PoliceDispatchLua/releases")
+			end
+		end
+
+		-- абаОаМаКаОббб
+		local result, button, _, input = sampHasDialogRespond(20001)
+		if result and button == 1 then
+			if not tonumber(input) or tonumber(input) < 0 then
+				chatMessage("абаОаМаКаОббб аДаОаЛаЖаНаО аБббб баИбаЛаОаМ аБаОаЛббаИаМ аИаЛаИ баАаВаНбаМ аНбаЛб.")
+			else
+				input = tonumber(input)
+				if listMainMenu == 2 then INI.INI.callsVolume = input
+				elseif listMainMenu == 3 then INI.INI.findVolume = input
+				elseif listMainMenu == 4 then INI.INI.radioVolume = input
+				elseif listMainMenu == 5 then INI.INI.userVolume = input end
+				saveIni()
+			end
+			mainMenu()
+		elseif result then
+			mainMenu()
+		end
+
+		-- абаКаЛббаЕаНаИаЕ user баВаЕаНбаОаВ
+		local result, button, list, _ = sampHasDialogRespond(20002)
+		if result and button == 1 then
+			local key = CFG.configInfo.name.."_UserEvents"
+			INI[key][list+1] = not INI[key][list+1]
+			saveIni()
+
+			local userEvents = ""
+			for i, it in ipairs(INI[CFG.configInfo.name.."_UserEvents"]) do
+				userEvents = userEvents .. CFG.events.user[i].name.."\t"..(it and "{21C90E}ааКаЛ." or "{C91A14}абаКаЛ.").."\n"
+			end
+			sampShowDialog(20002, u8:decode("абаКаЛббаЕаНаИаЕ user-баВаЕаНбаОаВ"), u8:decode(userEvents), btn1, btn2, 4)
+		elseif result then
+			mainMenu()
+		end
+
+		-- абаОаВаЕбаКаА бббаОаКаИ
+		local result, button, _, input = sampHasDialogRespond(20003)
+		if result and button == 1 then
+			input = input:gsub("^R: (%w+) ", "")
+			local color = input:match("^R: (%w+) ")
+			if color and not tonumber(color) then
+				color = tonumber("0x"..color)
+			end
+
+			-- local h, s = handleEvent(input, color)
+			sampAddChatMessage(input, (color or -1))
+			if h == false and s == "that server message is not triggered event" then
+				chatMessage("аЁаОаБббаИаЕ аНаЕ аНаАаЙаДаЕаНаО. ааОаЗаМаОаЖаНаО аВб аНаЕаПбаАаВаИаЛбаНаО аВаВаЕаЛаИ бббаОаКб аВ config.json аИаЛаИ аВ аПаОаЛаЕ аДаЛб аВаВаОаДаА.")
+				chatMessage("ааИаБаО, аЕбаЛаИ ббаО user-баВаЕаНб, аОаН аМаОаЖаЕб аБббб аОбаКаЛббаЕаН аВ аНаАбббаОаЙаКаАб.")
+			elseif h == false and s == "volume" then
+				chatMessage("аЁаОаБббаИаЕ, аКаОбаОбаОаЕ аВб аПббаАаЕбаЕбб аВаОбаПбаОаИаЗаВаЕббаИ, аОбаКаЛббаЕаНаО.")
+			elseif h == false and s == "question words" then
+				chatMessage("а баОаОаБбаЕаНаИаИ аПаО баАбаИаИ аНаАаЙаДаЕаНаО аВаОаПбаОбаИбаЕаЛбаНаОаЕ баЛаОаВаО.")
+			elseif h == false and s == "text radio" then
+				chatMessage("а баОаОаБбаЕаНаИаИ аПаО баАбаИаИ аНаЕ аНаАаЙаДаЕаНаО аНаИаКаАаКаИб аКаЛббаЕаВбб баЛаОаВ.")
+			elseif h == false and s == "stopWords" then
+				chatMessage("а аВбаЗаОаВаЕ аНаАаЙаДаЕаНб \"ббаОаП-баЛаОаВаА\" аИаЗ config.json.")
+			elseif h == false then
+				chatMessage("абаИ аПбаОаВаЕбаКаИ бббаОаКаИ аПбаОаИаЗаОбаЛаА аОбаИаБаКаА. ааОаДбаОаБаНаЕаЕ аВ moonloader.log.")
+			elseif h == true then
+				chatMessage("ааАбаА бббаОаКаА баОаДаЕбаЖаАаЛаА аМаАаЛаО аДаАаНаНбб, аПаОббаОаМб баОббаАаНаЕаНаА аДаО баЛаЕаДбббаЕаГаО баОаБббаИб.")
+				chatMessage("абаИаМаЕбаАаНаИаЕ: аКаАаК баОаЛбаКаО аПбаИаДаЕб аНаОаВаАб бббаОаКаА аВ баАбаЕ, аДаАаНаНбаЕ аОаБаНбаЛббббб.")
+			else
+				chatMessage("ааАаЖаЕббб, аВбаЕ аПбаОбаЛаО ббаПаЕбаНаО.")
+			end
+		elseif result then
+			mainMenu()
+		end
 	end
 end
-
-
 
 function sampev.onServerMessage(color, message)
 	if not INI or not CFG or not INI.INI.state then return true end
+	message = u8(message)
 
-	-- Т схёъ. ішъых ях№хьхээрџ юсэютыџхђёџ яючцх, їхь я№шѕюфџђ
-	-- ёююсљхэшџ шч їрђр яюёых тћѕюфр шч РдЪ.
-	if not soundInAFK and TIME_ENTER_AFK and os.clock() - TIME_ENTER_AFK >= 120 then
+	-- а аБаЕбаК. баИаКаЛаЕ аПаЕбаЕаМаЕаНаНаАб аОаБаНаОаВаЛбаЕббб аПаОаЗаЖаЕ, баЕаМ аПбаИбаОаДбб
+	-- баОаОаБбаЕаНаИб аИаЗ баАбаА аПаОбаЛаЕ аВббаОаДаА аИаЗ ааЄа.
+	if not INI.INI.soundInAFK and TIME_ENTER_AFK and os.clock() - TIME_ENTER_AFK >= 120 then
 		return true
 	end
 
-	handleEvent(message, color)
-	return true
-end
-
-
-
-
--- MAIN FUNCTION --
-
--- HANDLER EVENTS --
-function handleEvent(str, color)
-	local ev, pattern, markerId, idUserEvent = getEventInfo(str, color)
-	if not ev then
-		-- юїшљрхь, яюђюьѓ їђю шэєр фюыцэр сћђќ эр ёыхфѓўљхщ ёђ№юъх
-		if #VARS > 0 then
-			VARS = {}
-		end
-		return false, 'not ev'
+	local eventType
+	-- ааО баМаОаЛбаАаНаИб user баВаЕаНбб аПбаОаВаЕбббббб баАаМбаМаИ аПаЕбаВбаМаИ.
+	if not CFG.user or #CFG.user == 0 then
+		return
 	end
 
-	local vars = getVariablesFromMessage(str, pattern)
-	-- зхърхь юёђрыёџ ыш уыюсрыќэћщ VARS юђ я№хфћфѓљхую тћчютр.
-	vars = concatWithGlobalVars(vars, ev)
+	for i, ev in ipairs(CFG.events.user) do
+		if INI[CFG.name.."_UserEvents"][i] then
+			local patterns = toTable(ev.chatMessage)
+			local colors = toTable(ev.colorChatMessage)
 
-	if ev == 'find' then
-		if INI.INI.findVolume == 0 then return false, 'volume' end
-		-- Хёыш эхђ юсџчрђхыќэюую яр№рьхђ№р
+			if #colors < 1 or (#colors == 1 and colors == color) or isValueIsInArray(tonumber(color), colors) then
+				for _, patt in ipairs(patterns) do
+					if not ev.useRegexInPattern then
+						patt = "^"..(
+							patt:gsub("%^", "%%^")
+							:gsub("%$", "%%$")
+							:gsub("%(", "%%(")
+							:gsub("%)", "%%)")
+							:gsub("%.", "%%.")
+							:gsub("%[", "%%[")
+							:gsub("%]", "%%]")
+							:gsub("%*", "%%*")
+							:gsub("%+", "%%+")
+							:gsub("%-", "%%-")
+							:gsub("%?", "%%?")
+						)
+					end
+
+					if message:find(patt:gsub("@([%a_]+)", ".+")) then
+						userPattern = patt
+						idUserEvent = i
+						break
+					end
+				end
+			end
+		end
+	end
+
+
+	if userPattern then
+		eventType = "user"
+	end
+
+	local varsAndValues
+	for id_event, ev_type in ipairs(CFG.events) do
+		local patterns = toTable(CFG.events[evtype].chatMessage)
+		local colors = CFG.events[evtype].colorChatMessage
+		
+		if #colors < 1 or (#colors == 1 and colors == color) or isValueIsInArray(tonumber(color), colors) then
+			for _, patt in ipairs(patterns) do
+				if not CFG[evtype].useRegexInPattern then
+					patt = "^"..(
+						patt:gsub("%^", "%%^")
+						:gsub("%$", "%%$")
+						:gsub("%(", "%%(")
+						:gsub("%)", "%%)")
+						:gsub("%.", "%%.")
+						:gsub("%[", "%%[")
+						:gsub("%]", "%%]")
+						:gsub("%*", "%%*")
+						:gsub("%+", "%%+")
+						:gsub("%-", "%%-")
+						:gsub("%?", "%%?")
+					)
+				end
+				
+				if str:find(patt:gsub("@([%a_]+)", ".+")) then
+					eventType = evtype
+					varsAndValues = {}
+					local vars = {}
+
+					-- аИбаЕаМ аВбаЕ @var
+					local start = 1
+					local var
+					for _ = 1, #message do
+						_, start, var = patt:find("@([%a_]+)", start)
+						if var then
+							table.insert(vars, var)
+						else
+							break
+						end
+					end
+
+					for _, var in ipairs(vars) do
+						local patternFindVar = "(.+)"
+						if var == "n" or var == "id" then
+							patternFindVar = "(%%d+)"
+						end
+
+						local patternWithoutVar = patt:gsub(
+							"@"..var.."[^%a_]",
+							patternFindVar..(patt:match("@"..var.."([^%a_])") or "")
+						):gsub("@([%a_]+)", ".+")
+
+						varsAndValues[var] = message:match(patternWithoutVar)
+
+						if not varsAndValues[var] then
+							print("Warning: ааЕ аНаАаЙаДаЕаНаА аПаЕбаЕаМаЕаНаНаАб @"..var.." аВ бббаОаКаЕ \""..message.."\"!")
+						end
+					end
+					
+					break
+				end
+			end
+		end
+	end
+
+	local markerId = CFG[eventType].markerId
+	
+	if not eventType then
+		-- аОбаИбаАаЕаМ, аПаОбаОаМб ббаО аИаНбаА аДаОаЛаЖаНаА аБббб аНаА баЛаЕаДбббаЕаЙ бббаОаКаЕ
+		if #VARS_AND_VALUES > 0 then
+			VARS_AND_VALUES = {}
+		end
+		return false, "that server message is not triggered event"
+	end
+
+	-- аЇаЕаКаАаЕаМ аОббаАаЛбб аЛаИ аГаЛаОаБаАаЛбаНбаЙ VARS аОб аПбаЕаДбаДббаЕаГаО аВбаЗаОаВаА.
+	if VARS[eventType] then
+		for k,v in pairs(VARS[event]) do
+			varsAndValues[k] = v
+		end
+		VARS[eventType] = {}
+	end
+
+	if eventType == "find" then
+		if INI.INI.findVolume == 0 then return false, "volume" end
+		-- абаЛаИ аНаЕб аОаБбаЗаАбаЕаЛбаНаОаГаО аПаАбаАаМаЕббаА
 		if not vars.area then
 			if markerId then
 				vars.area = getMarkerArea(markerId)
 				if not vars.area then
-					print("Шъюэър эр ър№ђх ё id "..markerId.." т §тхэђх find эх эрщфхэр.")
+					print("ааКаОаНаКаА аНаА аКаАббаЕ б id "..markerId.." аВ баВаЕаНбаЕ find аНаЕ аНаАаЙаДаЕаНаА.")
 					return false
 				end
-			elseif type(CFG.find.pattern) == 'table' and #CFG.find.pattern > 1 then
-				-- Юёђртыџхь фрээћх эр яюђюь
-				VARS['find'] = vars
+			elseif type(CFG.find.pattern) == "table" and #CFG.find.pattern > 1 then
+				-- аббаАаВаЛбаЕаМ аДаАаНаНбаЕ аНаА аПаОбаОаМ
+				VARS["find"] = vars
 				return true
 			else
-				print("Юјшсър! Ях№ьхээрџ @area эх ѓърчрэр т §тхэђх find!")
-				print("гърцшђх markerId шыш @area т ёююсљхэшш ш ях№хчру№ѓчшђх ёъ№шяђ!")
+				print("абаИаБаКаА! ааЕбаМаЕаНаНаАб @area аНаЕ баКаАаЗаАаНаА аВ баВаЕаНбаЕ find!")
+				print("аЃаКаАаЖаИбаЕ markerId аИаЛаИ @area аВ баОаОаБбаЕаНаИаИ аИ аПаЕбаЕаЗаАаГббаЗаИбаЕ баКбаИаПб!")
 				return false
 			end
 		end
@@ -228,7 +451,7 @@ function handleEvent(str, color)
 		if CFG.find.vehOnFoot and vars.vehname == CFG.find.vehOnFoot then
 			vars.onFoot = true
 		elseif vars.nick or vars.id then
-			-- Сх№хь шэєѓ юс ртђю шёѕюфџ шч фрээћѕ шу№юър
+			-- ааЕбаЕаМ аИаНбб аОаБ аАаВбаО аИббаОаДб аИаЗ аДаАаНаНбб аИаГбаОаКаА
 			local playerId = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
 			local playerInStream, playerHandle = sampGetCharHandleBySampPlayerId(playerId)
 
@@ -239,51 +462,51 @@ function handleEvent(str, color)
 			end
 		end
 
-	elseif ev == 'call' then
-		if INI.INI.callsVolume == 0 then return false, 'volume' end
+	elseif eventType == "call" then
+		if INI.INI.callsVolume == 0 then return false, "volume" end
 		if not vars.area or not vars.text then
-			if type(CFG.call.pattern) == 'table' and #CFG.call.pattern > 1 then
-				VARS['call'] = vars
+			if type(CFG.call.pattern) == "table" and #CFG.call.pattern > 1 then
+				VARS["call"] = vars
 				return true
 			else
-				print("Юјшсър! Ях№хьхээрџ @area шыш @text эх ѓърчрэр т §тхэђх call!")
+				print("абаИаБаКаА! ааЕбаЕаМаЕаНаНаАб @area аИаЛаИ @text аНаЕ баКаАаЗаАаНаА аВ баВаЕаНбаЕ call!")
 				return false
 			end
 		end
 
-		if inArray(vars.text, CFG.config.stopWords) then
-			return false, 'stopWords'
+		if isValueIsInArray(vars.text, CFG.config.stopWords) then
+			return false, "stopWords"
 		end
 
 		if 		CFG.call.isPlayGangActivity and
-				inArray(str, CFG.config.dictionaryGangActivity) and
+				isValueIsInArray(str, CFG.config.dictionaryGangActivity) and
 				varInElementsArray(vars.area, GANG_ACTIVITY_SOUNDS)
 		then
-			ev = 'gangActivity'
+			eventType = "gangActivity"
 		elseif 	math.random(2) == 2 and
 				varInElementsArray(vars.area, AREA_AND_CODE_SOUNDS) 
 		then
 			math.randomseed(os.time())
-			ev = 'areaAndCode'
+			eventType = "areaAndCode"
 		end
 
-	elseif ev == 'radio' then
-		if INI.INI.radioVolume == 0 then return false, 'volume' end
+	elseif eventType == "radio" then
+		if INI.INI.radioVolume == 0 then return false, "volume" end
 		if CFG.radio.isPlayShotsFired then
-			if inArray(vars.text, CFG.config.code0Words) then
-				ev = 'code0'
-			elseif inArray(vars.text, CFG.config.code1Words) then
-				ev = 'code1'
+			if isValueIsInArray(vars.text, CFG.config.code0Words) then
+				eventType = "code0"
+			elseif isValueIsInArray(vars.text, CFG.config.code1Words) then
+				eventType = "code1"
 			end
 		end
 
-		-- Яюыќчютрђхыќёъшх §тхэђћ эр №рфшю
-		if 	ev == 'radio' and
+		-- ааОаЛбаЗаОаВаАбаЕаЛббаКаИаЕ баВаЕаНбб аНаА баАаДаИаО
+		if 	eventType == "radio" and
 			type(CFG.radio.userMessages) == "table" and
 			#CFG.radio.userMessages > 0
 		then
 			for _, usermsg in ipairs(CFG.radio.userMessages) do
-				if inArray(vars.text, toTable(usermsg.textFind), usermsg.useRegexInPattern) then
+				if isValueIsInArray(vars.text, toTable(usermsg.textFind), usermsg.useRegexInPattern) then
 					local sounds = cloneTable(toTable(usermsg.sounds))
 
 					for i, sound in ipairs(sounds) do
@@ -300,7 +523,7 @@ function handleEvent(str, color)
 						elseif varname == "@randomareaincityplayer" then
 							local city = getPlayerCity(PLAYER_PED)
 							if not city or city == "San Andreas" then
-								-- Т я№шэішях №рэфюьэћщ №рщюэ
+								-- а аПбаИаНбаИаПаЕ баАаНаДаОаМаНбаЙ баАаЙаОаН
 								sounds[i] = getAreaSoundPatch(randomChoice(AREAS)[1])
 							else
 								sounds[i] = getAreaSoundPatch(
@@ -312,605 +535,432 @@ function handleEvent(str, color)
 						elseif varname == "@codeone" then
 							sound = randomChoice(CODE_1_SOUNDS)
 						else
-							sounds[i] = PATH.audio..sound:gsub('/', '\\')
+							sounds[i] = PATH.audio..sound:gsub("/", "\\")
 						end
 					end
 
 					lua_thread.create(
 						playSounds,
 						sounds,
-						'radioVolume',
+						"radioVolume",
 						usermsg.isPlayRadioOn
 					)
 					return
 				end
 			end
-			return false, 'not ev'
-		elseif inArray(vars.text, QUESTION_WORDS) then
-			return false, 'question words'
-		elseif ev == 'radio' then
-			return false, 'text radio'
+			return false, "that server message is not triggered event"
+		elseif isValueIsInArray(vars.text, QUESTION_WORDS) then
+			return false, "question words"
+		elseif ev == "radio" then
+			return false, "text radio"
 		end
 
-	elseif ev == 'user' then
-		if INI.INI.userVolume == 0 then return false, 'volume' end
-		local arrSounds = parceSounds(idUserEvent, vars)
-		if type(arrSounds) == 'table' and #arrSounds > 0 then
-			lua_thread.create(playSounds, arrSounds, 'userVolume', CFG.user[idUserEvent].isPlayRadioOn)
+	elseif eventType == "user" then
+		if INI.INI.userVolume == 0 then return false, "volume" end
+		local arrSounds = {}
+		
+		local CFGuser = CFG.user[idUserEvent]
+		CFGuser.sounds = toTable(CFGuser.sounds)
+		for i, sound in ipairs(CFGuser.sounds) do
+	
+			if type(sound) ~= "string" then
+				print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+				print("ааОаЛбаЗаОаВаАбаЕаЛббаКаИаЕ аЗаВбаКаИ аДаОаЛаЖаНб аБббб аМаЕаЖаДб аКаАаВббаКаАаМаИ!")
+				return false
+	
+			-- DISP.key1.key2
+			elseif sound:find("^DISP%.") then
+				local s = sound:split("%.")
+				if #s == 2 or #s == 3 then
+					local newSound
+					if #s == 3 then
+						if s[2] == "codes" or s[2] == "codesWithIn" then
+							s[3] = tonumber(s[3])
+						end
+						newSound = DISPATCH_SOUNDS[s[2]][s[3]]
+					else
+						newSound = DISPATCH_SOUNDS[s[2]]
+					end
+	
+					if not newSound then
+						print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+						print("ааВбаК аНаЕ аНаАаЙаДаЕаН! аЃаБаЕаДаИбаЕбб ббаО аВб аВбаЕ аВаЕбаНаО аНаАаПаИбаАаЛаИ.")
+						print("аЁбаАаВаНаИбаЕ баВаОаИ аКаЛббаИ б аКаЛббаАаМаИ аВ аПаЕбаЕаМаЕаНаНаОаЙ DISPATCH_SOUNDS аВ баАаЙаЛаЕ config.lua.")
+						print("а аЕаГаИббб баИаМаВаОаЛаОаВ аИаМаЕаЕб аЗаНаАбаЕаНаИаЕ!")
+						return false
+					end
+					sound = newSound
+				else
+					print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+					print("аЃаКаАаЗбаВаАбб аЗаВбаК аНбаЖаНаО: DISP.key1.key2. абаИаМаЕб: DISP.words.headTo10.")
+					return false
+				end
+	
+			-- @var
+			elseif sound:find("^@") then
+				local varname = sound:match("@([%a_]+)")
+				if not varname then
+					print("ааЕаКаОббаЕаКбаНаАб аПаЕбаЕаМаЕаНаНаАб аВ аЗаВбаКаЕ "..tostring(sound).." (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+					print("ааЕбаЕаМаЕаНаНбаЕ аПаИббббб баОаЛбаКаО аЛаАбаИаНаИбаЕаЙ аИаЛаИ аНаИаЖаНаИаМ аПаОаДбаЕбаКаИаВаАаНаИаЕаМ!")
+					return false
+				end
+	
+				-- абаЛаИ аПаЕбаЕаМаЕаНаНаОаЙ аНаЕб аВ бббаОаКаЕ.
+				if 	(not vars[varname]) and 
+					(not (CFGuser.vars and CFGuser.vars[varname])) and
+					(varname ~= "veh" or not (vars.vehname or vars.vehid))
+				then
+					if varname == "area" and CFGuser.markerId then
+						local markerId = CFGuser.markerId
+						local area = getMarkerArea(markerId)
+						if not area then
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..(CFGuser.name).."\"!")
+							print("ааКаОаНаКаА аНаА аКаАббаЕ б id "..markerId.." аВ баВаЕаНбаЕ user аНаЕ аНаАаЙаДаЕаНаА.")
+							return false
+						end
+	
+						local newSound = getAreaSoundPatch(area)
+						if not newSound then
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("@area аНаЕ аНаАаЙаДаЕаНаО.")
+							return false
+						end
+						sound = newSound
+	
+					elseif varname == "veh" then
+						if vars.id or vars.nick then
+							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
+							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
+							if res then
+								for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
+									table.insert(arrSounds, soundColor)
+								end
+								sound = getVehSound(vars.vehid)
+							else
+								print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+								print("ааЕбаЕаМаЕаНаНаОаЙ @vehname аИаЛаИ @vehid аНаЕб аВ бббаОаКаЕ!")
+								print("а аИаГбаОаК, баКаАаЗаАаНаНбаЙ аВ аПаЕбаЕаМаЕаНаНбб @id аИаЛаИ @nick аВаНаЕ аЗаОаНаЕ бббаИаМаА!")
+								return false
+							end
+						else
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааЕбаЕаМаЕаНаНаОаЙ @vehname аИаЛаИ @vehid аНаЕб аВ бббаОаКаЕ!")
+							return false
+						end
+					elseif varname == "suspectveh" then
+						-- ааОаПаИаПаАбб.
+						if vars.id or vars.nick then
+							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
+							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
+							if res then
+								table.insert(arrSounds, DISPATCH_SOUNDS.suspect.suspect1)
+								table.insert(arrSounds, DISPATCH_SOUNDS.words.onA)
+								for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
+									table.insert(arrSounds, soundColor)
+								end
+								sound = getVehSound(vars.vehid)
+							else
+								-- аЅааЅааЅааЅаЅааЅааЅааЅааЅааЅаЅа
+								-- ааАаДаНаО.
+								local playerInStream, playerHandle
+	
+								local _, playerId = sampGetPlayerIdByCharHandle(PLAYER_PED)
+								if id ~= playerId then
+									playerInStream, playerHandle = sampGetCharHandleBySampPlayerId(vars.id)
+								else
+									playerInStream, playerHandle = true, PLAYER_PED
+								end
+	
+								if not playerInStream then
+									print("Warning @suspectveh: ааГбаОаК аВаНаЕ аЗаОаНаЕ бббаИаМаА аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+									sound = nil
+								else
+									table.insert(arrSounds, DISPATCH_SOUNDS.suspect.suspect1)
+									sound = DISPATCH_SOUNDS.suspect.onFoot
+								end
+							end
+						else
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааЕбаЕаМаЕаНаНаОаЙ @vehname аИаЛаИ @vehid аНаЕб аВ бббаОаКаЕ!")
+							return false
+						end
+					elseif varname == "cityplayer" then
+						local city = getPlayerCity(PLAYER_PED)
+						if not city then
+							local x, y, z = getCharCoordinates(PLAYER_PED)
+							print("абаИаБаКаА! ааЕ баДаАаЛаОбб аОаПбаЕаДаЕаЛаИбб аГаОбаОаД аИаГбаОаКаА.")
+							print("ааОаОбаДаИаНаАбб: x = "..x..", y = "..y..", z = "..z)
+							return false
+						end
+						sound = getAreaSoundPatch(city)
+					elseif varname == "areaplayer" then
+						local area = getPlayerArea(PLAYER_PED)
+						if not area then
+							local x, y, z = getCharCoordinates(PLAYER_PED)
+							print("абаИаБаКаА! ааЕ баДаАаЛаОбб аОаПбаЕаДаЕаЛаИбб баАаЙаОаН аИаГбаОаКаА.")
+							print("ааОаОбаДаИаНаАбб: x = "..x..", y = "..y..", z = "..z)
+							return false
+						end
+						sound = getAreaSoundPatch(area)
+					elseif varname == "randomtencode" then
+						sound = randomChoice(DISPATCH_SOUNDS.codes)
+					elseif varname == "randomtencodewithin" then
+						sound = randomChoice(DISPATCH_SOUNDS.codesWithIn)
+					elseif varname == "randomarea" then
+						sound = getAreaSoundPatch(randomChoice(AREAS)[1])
+					elseif varname == "randomareaincityplayer" then
+						local city = getPlayerCity(PLAYER_PED)
+						if not city or city == "San Andreas" then
+							-- а аПбаИаНбаИаПаЕ баАаНаДаОаМаНбаЙ баАаЙаОаН
+							sound = getAreaSoundPatch(randomChoice(AREAS)[1])
+						else
+							sound = getAreaSoundPatch(
+								randomChoice(LIST_AREAS_IN_REGIONS[city])
+							)
+						end
+					elseif varname == "codezero" then
+						sound = randomChoice(CODE_0_SOUNDS)
+					elseif varname == "codeone" then
+						sound = randomChoice(CODE_1_SOUNDS)
+					elseif varname == "megaphone" then
+						if coords == "player" then
+							handleOrId = getPlayerHandleOrIdByVariables(vars)
+							setPlay3dAudioStreamAtChar(sound, handleOrId)
+						end
+						setAudioStreamVolume(sound, 5)
+						setAudioStreamState(sound, 1)
+					else
+						print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+						print("ааЕбаЕаМаЕаНаНаОаЙ @"..varname.." аНаЕб аВ бббаОаКаЕ!")
+						return false
+					end
+	
+				-- аббб аКаОаНббббаКбаИб б аПаОаЛбаЗаОаВаАбаЕаЛббаКаИаМаИ аЗаАаМаЕаНаАаМаИ аПаЕбаЕаМаЕаНаНбб
+				elseif
+					CFGuser.vars and 
+					(
+						(CFGuser.vars[varname]) or (
+							varname == "veh" and
+							-- аДаЛб veh аДббаГаИаЕ аПаЕбаЕаМаЕаНаНбаЕ
+							(CFGuser.vars["vehname"] or CFGuser.vars["vehid"])
+						)
+					)
+				then
+					if varname ~= "veh" then
+						-- ааАаМаЕаНаИбб, аЕбаЛаИ аНбаЖаНаО аБбаДаЕб аНаЕ ббаИббаВаАбб баЕаГаИббб
+						-- аВ аЗаНаАбаЕаНаИбб аПаОаЛбаЗаОаВаАбаЕаЛббаКаИб аПаЕбаЕаМаЕаНаНбб.
+						newSound = CFGuser.vars[varname] [vars[varname]]
+						if newSound then
+							sound = newSound
+						else
+							print("Warning! а vars."..varname.." аНаЕб аЗаНаАбаЕаНаИб "..vars[varname]..". "..
+								"ааЕбаЕаМаЕаНаНаАб аНаЕ аПаЕбаЕаЗаАаПаИбаАаЛаАбб.")
+						end
+					end
+	
+					-- ааБбаАаБаОбаКаА аЗаНаАбаЕаНаИб аПаЕбаЕаМаЕаНаНбб аКаАаК аЗаВбаКаА.
+					-- ааО бббаИ баА аЖаЕ ббаНаКбаИб аКаАаК аВ else аНаИаЖаЕ.
+					-- абаЖаНаО баПбаОббаИбб.
+					-- а баАаКаЖаЕ аПбаОбаЕббаИбб. ааАаГаАаДаКаА аОб ааАаКаА аЄбаЕбаКаО.
+					if varname == "area" then
+						local area = sound
+						sound = getAreaSoundPatch(area)
+						if not sound then
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \"@area\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааОбаЛаЕ аЗаАаМаЕаНб аНаА аПаОаЛбаЗаОаВаАбаЕаЛббаКбб аКаОаНббббаКбаИб, баАаЙаОаН "..area.." аНаЕ аБбаЛ аНаАаЙаДаЕаН.")
+							return false
+						end
+					elseif varname == "veh" then
+						if vars["vehname"] or vars["vehid"] then
+							-- аЅаМ... ааАаК аЖаЕ баПбаОббаИбб.
+							-- ааАаГаАаДаКаА аОб аЖаАаКаА аЄбаЕбаКаО.
+							-- а аНаЕ аПаОббаЙ аЛаИ?
+							if CFGuser.vars["vehname"] then
+								local newSound = CFGuser.vars.vehname[vars.vehname]
+								if newSound then
+									vars.vehname = newSound
+								end
+							end
+							if CFGuser.vars["vehid"] then
+								local newSound = CFGuser.vars.vehid[vars.vehid]
+								if newSound then
+									vars.vehid = newSound
+								end
+							end
+	
+							vars.vehid = vars.vehid or vars.vehname and getCarModelByName(vars.vehname)
+							sound = getVehSound(vars.vehid)
+	
+							if not sound then
+								print("абаИаБаКаА аВ аЗаВбаКаЕ \"@veh\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+								if vars.vehid then
+									print("ааВбаОаМаОаБаИаЛб б id \""..tostring(vars.vehid).."\" аНаЕ аБбаЛ аНаАаЙаДаЕаН!")
+								elseif vars.vehname then
+									print("ааВбаОаМаОаБаИаЛб б аНаАаЗаВаАаНаИаЕаМ \""..tostring(vars.vehname).."\" аНаЕ аБбаЛ аНаАаЙаДаЕаН!")
+								end
+								return false
+							end
+	
+							if vars.vehname and vars.vehname == CFGuser.vehOnFoot then
+								sound = DISPATCH_SOUNDS.suspect.onFoot
+							elseif vars.id or vars.nick then
+								-- ааЕбаЕаМ аИаНбб аИаЗ аИаГбаОаКаА, аЕбаЛаИ баОб аВ бббаИаМаЕ.
+								vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
+								res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
+								if res then
+									for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
+										table.insert(arrSounds, soundColor)
+									end
+	
+									sound = getVehSound(vars.vehid)
+								end
+							end
+						else
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \"@area\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааЕбаЕаМаЕаНаНаОаЙ @vehname аИаЛаИ @vehid аНаЕб аВ бббаОаКаЕ!")
+							return false
+						end
+					else
+						if type(sound) ~= "string" then
+							print("абаИаБаКаА аВ аЗаВбаКаЕ \""..tostring(sound).."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааНаАбаЕаНаИаЕ аПаЕбаЕаМаЕаНаНаОаЙ аДаОаЛаЖаНаА аБббб бббаОаКаА!")
+							return false
+						elseif sound:find("^DISP%.") then
+							local s = sound:split("%.")
+							local newSound
+							if #s == 3 then
+								if s[2] == "codes" or s[2] == "codesWithIn" then
+									s[3] = tonumber(s[3])
+								end
+								newSound = DISPATCH_SOUNDS[s[2]][s[3]]
+							else
+								newSound = DISPATCH_SOUNDS[s[2]]
+							end
+	
+							if not newSound then
+								print("абаИаБаКаА аВ аЗаВбаКаЕ \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+								print("ааВбаК аНаЕ аНаАаЙаДаЕаН! аЃаБаЕаДаИбаЕбб ббаО аВб аВбаЕ аВаЕбаНаО аНаАаПаИбаАаЛаИ.")
+								print("аЁбаАаВаНаИбаЕ баВаОаИ аКаЛббаИ б аКаЛббаАаМаИ аВ аПаЕбаЕаМаЕаНаНаОаЙ DISPATCH_SOUNDS аВ баАаЙаЛаЕ config.lua.")
+								print("а аЕаГаИббб баИаМаВаОаЛаОаВ аИаМаЕаЕб аЗаНаАбаЕаНаИаЕ!")
+								return false
+							end
+							sound = newSound
+						else
+							sound = PATH.audio..newSound
+						end
+					end
+	
+				else
+					if varname == "area" then
+						sound = getAreaSoundPatch(vars.area)
+						if not sound then
+							print("абаИаБаКаА аВ аЗаВбаКаЕ т"..i.." аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("@area аНаЕ аНаАаЙаДаЕаНаО.")
+							return false
+						end
+	
+					elseif varname == "veh" then
+						-- ааОбаЕаМб аНаЕ аБаЕбаЕббб аИаНбаА аИаЗ аВаОаЗаМаОаЖаНаОаГаО аИаГбаОаКаА
+						-- аВ аЗаОаНаЕ бббаИаМаА
+						if vars["vehname"] or vars["vehid"] then
+							vars.vehid = vars.vehid or vars.vehname and getCarModelByName(vars.vehname)
+							sound = getVehSound(vars.vehid)
+							if not sound then
+								print("абаИаБаКаА аВ аЗаВбаКаЕ \"@veh\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+								if vars.vehid then
+									print("ааВбаОаМаОаБаИаЛб б id \""..tostring(vars.vehid).."\" аНаЕ аБбаЛ аНаАаЙаДаЕаН!")
+								elseif vars.vehname then
+									print("ааВбаОаМаОаБаИаЛб б аНаАаЗаВаАаНаИаЕаМ \""..tostring(vars.vehname).."\" аНаЕ аБбаЛ аНаАаЙаДаЕаН!")
+								end
+								return false
+							end
+	
+							if CFGuser.veh and vars.vehname == CFGuser.vehOnFoot then
+								sound = DISPATCH_SOUNDS.suspect.onFoot
+							elseif vars.id or vars.nick then
+								-- ааЕбаЕаМ аИаНбб аИаЗ аИаГбаОаКаА, аЕбаЛаИ баОб аВ бббаИаМаЕ.
+								vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
+								res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
+	
+								if res then
+									for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
+										table.insert(arrSounds, soundColor)
+									end
+									sound = getVehSound(vars.vehid)
+								end
+							end
+						else
+							print("абаИаБаКаА аВ аЗаВбаКаЕ т"..i.." аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+							print("ааЕаВаОаЗаМаОаЖаНаО аПаОаЛббаИбб аЗаВбаК аАаВбаОаМаОаБаИаЛб, баАаК аКаАаК ...")
+							print("... аВ аПаАббаЕбаНаЕ аНаЕ баКаАаЗаАаНаА аНаИ @vehname, аНаИ @vehid!")
+							return false
+						end
+					else
+						sound = vars[varname]
+					end
+				end
+			-- аОбаНаОбаИбаЕаЛбаНбаЙ аПббб
+			elseif sound:find("%.") then
+				sound = sound:gsub("/", "\\")
+				sound = PATH.audio..sound
+			else
+				print("ааЕаИаЗаВаЕббаНбаЙ аЗаВбаК \""..sound.."\" (т"..i..") аВ user баВаЕаНбаЕ \""..CFGuser.name.."\"!")
+				return false
+			end
+	
+			arrSounds[#arrSounds+1] = sound
+		end
+
+
+		if type(arrSounds) == "table" and #arrSounds > 0 then
+			lua_thread.create(playSounds, arrSounds, "userVolume", CFG.user[idUserEvent].isPlayRadioOn)
 			return
 		else
-			print('Я№юшчюјыр юјшсър т ьрёёштх "sounds" т яюыќчютрђхыќёъюь §тхэђх '..CFG.user[idUserEvent].name..', ышсю юэ эх юя№хфхыИэ.!')
+			print("абаОаИаЗаОбаЛаА аОбаИаБаКаА аВ аМаАббаИаВаЕ \"sounds\" аВ аПаОаЛбаЗаОаВаАбаЕаЛббаКаОаМ баВаЕаНбаЕ "..CFG.user[idUserEvent].name..", аЛаИаБаО аОаН аНаЕ аОаПбаЕаДаЕаЛбаН.!")
 			return false
 		end
 	end
 
-	return playDispatch(ev, vars)
-end
+	if eventType == "call" then
+		lua_thread.create(playSounds, {
+			PATH.audio.."dispatcher_calls_units/we got a 10-.wav",
+			randomChoice(DISPATCH_SOUNDS.codesWithIn),
+			getAreaSoundPatch(vars.area)
+		}, "callsVolume", true)
 
-function getVariablesFromMessage(message, pattern)
-	-- тючт№рљрхђ ьрёёшт {var: value}
-	local varsAndValues = {}
-	local vars = {}
+	elseif eventType == "areaAndCode" then
+		lua_thread.create(playSounds, PATH.audio..PATH.areaAndCode..vars.area..".wav", "callsVolume")
 
-	-- шљхь тёх @var
-	local start = 1
-	local var
-	for _ = 1, #message do
-		_, start, var = pattern:find("@([%a_]+)", start)
-		if var then
-			table.insert(vars, var)
-		else
-			break
-		end
+	elseif eventType == "find" then
+		lua_thread.create(playSounds, {
+			DISPATCH_SOUNDS.suspect.lastSeen,
+			DISPATCH_SOUNDS.words.inA,
+			getAreaSoundPatch(vars.area),
+			(
+				vars["vehid"] and DISPATCH_SOUNDS.words.onA or
+				vars["onFoot"] and DISPATCH_SOUNDS.suspect.onFoot or
+				nil
+			),
+			unpack(getCarColorSound(vars.vehcolor)),
+			getVehSound(vars.vehid)
+		}, "findVolume", true)
+
+	elseif eventType == "code1" then
+		lua_thread.create(playSounds, randomChoice(CODE_1_SOUNDS), "radioVolume")
+
+	elseif eventType == "code0" then
+		lua_thread.create(playSounds, randomChoice(CODE_0_SOUNDS), "radioVolume")
 	end
 
-	for _, var in ipairs(vars) do
-		local patternFindVar = "(.+)"
-		if var == 'n' or var == 'id' then
-			patternFindVar = "(%%d+)"
-		end
-
-		local patternWithoutVar = pattern:gsub(
-			"@"..var.."[^%a_]",
-			patternFindVar..(pattern:match("@"..var.."([^%a_])") or "")
-		):gsub("@([%a_]+)", '.+')
-
-		varsAndValues[var] = message:match(patternWithoutVar)
-
-		if not varsAndValues[var] then
-			print("Warning: Эх эрщфхэр ях№хьхээрџ @"..var.." т ёђ№юъх \""..message.."\"!")
-		end
-	end
-
-	return varsAndValues
-end
-
-function concatWithGlobalVars(vars, event)
-	if VARS[event] then
-		local t = concatTablesWithKeys(vars, VARS[event])
-		VARS[event] = {}
-		return t
-	end
-	return vars
-end
-
-
-
-
--- GET EVENT --
-
-function getEventInfo(str, color)
-	local ev, patt, idUserEvent = getEventAndPattern(str, color)
-	if ev == false then return end
-	local markerId = CFG[ev].markerId
-
-	return ev, patt, markerId, idUserEvent
-end
-
-function getEventAndPattern(str, color)
-	-- Яю ѓьюыїрэшў user §тхэђћ я№ютх№џўђёџ ёрьћьш ях№тћьш, хёыш эх чрфрэю шэрїх.
-	if not CFG.userNotPriority then
-		local userPattern, idUserEvent = getUserPatternAndId(str, color)
-		if userPattern then
-			return 'user', userPattern, idUserEvent
-		end
-	end
-
-	for _, key in ipairs({'call', 'find', 'radio'}) do
-		if CFG[key] then
-			local patterns = CFG[key].pattern
-			local colors = CFG[key].color
-
-			patterns = toTable(patterns)
-			colors = toTable(colors)
-
-			local isColor = true
-			for _, col in pairs(colors) do
-				if col ~= tonumber(color) then
-					isColor = false
-				else
-					isColor = true
-					break
-				end
-			end
-			
-			if isColor then
-				for _, patt in ipairs(patterns) do
-					if not CFG[key].useRegexInPattern then
-						patt = '^'..esc(patt)
-					end
-					local pattWithoutVars = getPatternWithoutVars(patt)
-					if str:find(pattWithoutVars) then
-						return key, patt
-					end
-				end
-			end
-		end
-	end
-
-	if CFG.userNotPriority then
-		local userPattern, idUserEvent = getUserPatternAndId(str, color)
-		if userPattern then
-			return 'user', userPattern, idUserEvent
-		end
-	end
-
-	return false
-end
-
-function getUserPatternAndId(str, color)
-	-- user events
-	if not CFG.user or #CFG.user == 0 then
-		return false
-	end
-
-	for i, ev in ipairs(CFG.user) do
-		if INI[CFG.name.."_UserEvents"][i] then
-			local patterns = ev.pattern
-			local colors = ev.color
-
-			patterns = toTable(patterns)
-			colors = toTable(colors)
-
-			local isColor = true
-			for _, col in pairs(colors) do
-				if col ~= tonumber(color) then
-					isColor = false
-				else
-					isColor = true
-					break
-				end
-			end
-
-			if isColor then
-				for _, patt in ipairs(patterns) do
-					if not ev.useRegexInPattern then
-						patt = '^'..esc(patt)
-					end
-
-					local pattWithoutVars = getPatternWithoutVars(patt)
-					if str:find(pattWithoutVars) then
-						return patt, i
-					end
-				end
-			end
-		end
-	end
+	return true
 end
 
 function getPatternWithoutVars(pattern)
 	return pattern:gsub("@([%a_]+)", ".+")
 end
 
-
-
-
--- PARCE USER SOUNDS FROM CONFIG FILE --
-
-function parceSounds(idUserEvent, vars)
-	local arrSounds = {}
-	local CFGuser = CFG.user[idUserEvent]
-	CFGuser.sounds = toTable(CFGuser.sounds)
-	for i, sound in ipairs(CFGuser.sounds) do
-
-		if type(sound) ~= 'string' then
-			print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-			print("Яюыќчютрђхыќёъшх чтѓъш фюыцэћ сћђќ ьхцфѓ ъртћїърьш!")
-			return false
-
-		-- DISP.key1.key2
-		elseif sound:find("^DISP%.") then
-			local s = sound:split('%.')
-			if #s == 2 or #s == 3 then
-				local newSound
-				if #s == 3 then
-					if s[2] == 'codes' or s[2] == 'codesWithIn' then
-						s[3] = tonumber(s[3])
-					end
-					newSound = DISPATCH_SOUNDS[s[2]][s[3]]
-				else
-					newSound = DISPATCH_SOUNDS[s[2]]
-				end
-
-				if not newSound then
-					print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-					print("Чтѓъ эх эрщфхэ! гсхфшђхёќ їђю тћ тёх тх№эю эряшёрыш.")
-					print("б№ртэшђх ётюш ъыўїш ё ъыўїрьш т ях№хьхээющ DISPATCH_SOUNDS т єрщых config.lua.")
-					print("ахушёђ№ ёшьтюыют шьххђ чэрїхэшх!")
-					return false
-				end
-				sound = newSound
-			else
-				print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-				print("гърчћтрђќ чтѓъ эѓцэю: DISP.key1.key2. Я№шьх№: DISP.words.headTo10.")
-				return false
-			end
-
-		-- @var
-		elseif sound:find("^@") then
-			local varname = sound:match("@([%a_]+)")
-			if not varname then
-				print("Эхъю№№хъђэрџ ях№хьхээрџ т чтѓъх "..tostring(sound).." (Й"..i..")"..
-					" т user §тхэђх '"..CFGuser.name.."'!")
-				print("Ях№хьхээћх яшјѓђёџ ђюыќъю ырђшэшіхщ шыш эшцэшь яюфїх№ъштрэшхь!")
-				return false
-			end
-
-			-- Хёыш ях№хьхээющ эхђ т ёђ№юъх.
-			if 	(not vars[varname]) and 
-				(not (CFGuser.vars and CFGuser.vars[varname])) and
-				(varname ~= 'veh' or not (vars.vehname or vars.vehid))
-			then
-				if varname == 'area' and CFGuser.markerId then
-					local markerId = CFGuser.markerId
-					local area = getMarkerArea(markerId)
-					if not area then
-						print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Шъюэър эр ър№ђх ё id "..markerId.." т §тхэђх user эх эрщфхэр.")
-						return false
-					end
-
-					local newSound = getAreaSoundPatch(area)
-					if not newSound then
-						print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("@area эх эрщфхэю.")
-						return false
-					end
-					sound = newSound
-
-				elseif varname == 'veh' then
-					if vars.id or vars.nick then
-						vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
-						res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
-						if res then
-							for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
-								table.insert(arrSounds, soundColor)
-							end
-							sound = getVehSound(vars.vehid)
-						else
-							print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-							print("Ях№хьхээющ @vehname шыш @vehid эхђ т ёђ№юъх!")
-							print("Ш шу№юъ, ѓърчрээћщ т ях№хьхээћѕ @id шыш @nick тэх чюэх ёђ№шьр!")
-							return false
-						end
-					else
-						print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Ях№хьхээющ @vehname шыш @vehid эхђ т ёђ№юъх!")
-						return false
-					end
-				elseif varname == 'suspectveh' then
-					-- Ъюяшярёђ.
-					if vars.id or vars.nick then
-						vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
-						res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
-						if res then
-							table.insert(arrSounds, DISPATCH_SOUNDS.suspect.suspect1)
-							table.insert(arrSounds, DISPATCH_SOUNDS.words.onA)
-							for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
-								table.insert(arrSounds, soundColor)
-							end
-							sound = getVehSound(vars.vehid)
-						else
-							-- еРеРеРееРеРеРеРеРееР
-							-- Ырфэю.
-							local playerInStream, playerHandle
-
-							local _, playerId = sampGetPlayerIdByCharHandle(PLAYER_PED)
-							if id ~= playerId then
-								playerInStream, playerHandle = sampGetCharHandleBySampPlayerId(vars.id)
-							else
-								playerInStream, playerHandle = true, PLAYER_PED
-							end
-
-							if not playerInStream then
-								print("Warning @suspectveh: Шу№юъ тэх чюэх ёђ№шьр т user §тхэђх '"..CFGuser.name.."'!")
-								sound = nil
-							else
-								table.insert(arrSounds, DISPATCH_SOUNDS.suspect.suspect1)
-								sound = DISPATCH_SOUNDS.suspect.onFoot
-							end
-						end
-					else
-						print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Ях№хьхээющ @vehname шыш @vehid эхђ т ёђ№юъх!")
-						return false
-					end
-				elseif varname == "cityplayer" then
-					local city = getPlayerCity(PLAYER_PED)
-					if not city then
-						local x, y, z = getCharCoordinates(PLAYER_PED)
-						print("Юјшсър! Эх ѓфрыюёќ юя№хфхышђќ ую№юф шу№юър.")
-						print("Ъюю№фшэрђћ: x = "..x..", y = "..y..", z = "..z)
-						return false
-					end
-					sound = getAreaSoundPatch(city)
-				elseif varname == "areaplayer" then
-					local area = getPlayerArea(PLAYER_PED)
-					if not area then
-						local x, y, z = getCharCoordinates(PLAYER_PED)
-						print("Юјшсър! Эх ѓфрыюёќ юя№хфхышђќ №рщюэ шу№юър.")
-						print("Ъюю№фшэрђћ: x = "..x..", y = "..y..", z = "..z)
-						return false
-					end
-					sound = getAreaSoundPatch(area)
-				elseif varname == "randomtencode" then
-					sound = randomChoice(DISPATCH_SOUNDS.codes)
-				elseif varname == "randomtencodewithin" then
-					sound = randomChoice(DISPATCH_SOUNDS.codesWithIn)
-				elseif varname == "randomarea" then
-					sound = getAreaSoundPatch(randomChoice(AREAS)[1])
-				elseif varname == "randomareaincityplayer" then
-					local city = getPlayerCity(PLAYER_PED)
-					if not city or city == "San Andreas" then
-						-- Т я№шэішях №рэфюьэћщ №рщюэ
-						sound = getAreaSoundPatch(randomChoice(AREAS)[1])
-					else
-						sound = getAreaSoundPatch(
-							randomChoice(LIST_AREAS_IN_REGIONS[city])
-						)
-					end
-				elseif varname == "codezero" then
-					sound = randomChoice(CODE_0_SOUNDS)
-				elseif varname == 'codeone' then
-					sound = randomChoice(CODE_1_SOUNDS)
-				else
-					print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-					print("Ях№хьхээющ @"..varname.." эхђ т ёђ№юъх!")
-					return false
-				end
-
-			-- Хёђќ ъюэёђ№ѓъішџ ё яюыќчютрђхыќёъшьш чрьхэрьш ях№хьхээћѕ
-			elseif
-				CFGuser.vars and 
-				(
-					(CFGuser.vars[varname]) or (
-						varname == 'veh' and
-						-- фыџ veh ф№ѓушх ях№хьхээћх
-						(CFGuser.vars['vehname'] or CFGuser.vars['vehid'])
-					)
-				)
-			then
-				if varname ~= 'veh' then
-					-- Чрьхэшђќ, хёыш эѓцэю сѓфхђ эх ѓїшђћтрђќ №хушёђ№
-					-- т чэрїхэшџѕ яюыќчютрђхыќёъшѕ ях№хьхээћѕ.
-					newSound = CFGuser.vars[varname] [vars[varname]]
-					if newSound then
-						sound = newSound
-					else
-						print("Warning! Т vars."..varname.." эхђ чэрїхэшџ "..vars[varname]..". "..
-							"Ях№хьхээрџ эх ях№хчряшёрырёќ.")
-					end
-				end
-
-				-- Юс№рсюђър чэрїхэшџ ях№хьхээћѕ ъръ чтѓър.
-				-- Яю ёѓђш ђр цх єѓэъішџ ъръ т else эшцх.
-				-- Эѓцэю ѓя№юёђшђќ.
-				-- Р ђръцх я№юђхёђшђќ. Чрурфър юђ Црър д№хёъю.
-				if varname == 'area' then
-					local area = sound
-					sound = getAreaSoundPatch(area)
-					if not sound then
-						print("Юјшсър т чтѓъх '@area' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Яюёых чрьхэћ эр яюыќчютрђхыќёъѓў ъюэёђ№ѓъішў, №рщюэ "..area.." эх сћы эрщфхэ.")
-						return false
-					end
-				elseif varname == 'veh' then
-					if vars['vehname'] or vars['vehid'] then
-						-- еь... Ъръ цх ѓя№юёђшђќ.
-						-- Чрурфър юђ црър д№хёъю.
-						-- Р эх яюѕѓщ ыш?
-						if CFGuser.vars['vehname'] then
-							local newSound = CFGuser.vars.vehname[vars.vehname]
-							if newSound then
-								vars.vehname = newSound
-							end
-						end
-						if CFGuser.vars['vehid'] then
-							local newSound = CFGuser.vars.vehid[vars.vehid]
-							if newSound then
-								vars.vehid = newSound
-							end
-						end
-
-						vars.vehid = vars.vehid or vars.vehname and getCarModelByName(vars.vehname)
-						sound = getVehSound(vars.vehid)
-
-						if not sound then
-							print("Юјшсър т чтѓъх '@veh' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-							if vars.vehid then
-								print("Ртђюьюсшыќ ё id '"..tostring(vars.vehid).."' эх сћы эрщфхэ!")
-							elseif vars.vehname then
-								print("Ртђюьюсшыќ ё эрчтрэшхь '"..tostring(vars.vehname).."' эх сћы эрщфхэ!")
-							end
-							return false
-						end
-
-						if vars.vehname and vars.vehname == CFGuser.vehOnFoot then
-							sound = DISPATCH_SOUNDS.suspect.onFoot
-						elseif vars.id or vars.nick then
-							-- Сх№хь шэєѓ шч шу№юър, хёыш ђюђ т ёђ№шьх.
-							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
-							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
-							if res then
-								for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
-									table.insert(arrSounds, soundColor)
-								end
-
-								sound = getVehSound(vars.vehid)
-							end
-						end
-					else
-						print("Юјшсър т чтѓъх '@area' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Ях№хьхээющ @vehname шыш @vehid эхђ т ёђ№юъх!")
-						return false
-					end
-				else
-					if type(sound) ~= 'string' then
-						print("Юјшсър т чтѓъх '"..tostring(sound).."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-						print("Чэрїхэшх ях№хьхээющ фюыцэр сћђќ ёђ№юър!")
-						return false
-					elseif sound:find("^DISP%.") then
-						local s = sound:split('%.')
-						local newSound
-						if #s == 3 then
-							if s[2] == 'codes' or s[2] == 'codesWithIn' then
-								s[3] = tonumber(s[3])
-							end
-							newSound = DISPATCH_SOUNDS[s[2]][s[3]]
-						else
-							newSound = DISPATCH_SOUNDS[s[2]]
-						end
-
-						if not newSound then
-							print("Юјшсър т чтѓъх '"..sound.."' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-							print("Чтѓъ эх эрщфхэ! гсхфшђхёќ їђю тћ тёх тх№эю эряшёрыш.")
-							print("б№ртэшђх ётюш ъыўїш ё ъыўїрьш т ях№хьхээющ DISPATCH_SOUNDS т єрщых config.lua.")
-							print("ахушёђ№ ёшьтюыют шьххђ чэрїхэшх!")
-							return false
-						end
-						sound = newSound
-					else
-						sound = PATH.audio..newSound
-					end
-				end
-
-			else
-				if varname == 'area' then
-					sound = getAreaSoundPatch(vars.area)
-					if not sound then
-						print("Юјшсър т чтѓъх Й"..i.." т user §тхэђх '"..CFGuser.name.."'!")
-						print("@area эх эрщфхэю.")
-						return false
-					end
-
-				elseif varname == 'veh' then
-					-- Яюїхьѓ эх сх№хђёџ шэєр шч тючьюцэюую шу№юър
-					-- т чюэх ёђ№шьр
-					if vars['vehname'] or vars['vehid'] then
-						vars.vehid = vars.vehid or vars.vehname and getCarModelByName(vars.vehname)
-						sound = getVehSound(vars.vehid)
-						if not sound then
-							print("Юјшсър т чтѓъх '@veh' (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-							if vars.vehid then
-								print("Ртђюьюсшыќ ё id '"..tostring(vars.vehid).."' эх сћы эрщфхэ!")
-							elseif vars.vehname then
-								print("Ртђюьюсшыќ ё эрчтрэшхь '"..tostring(vars.vehname).."' эх сћы эрщфхэ!")
-							end
-							return false
-						end
-
-						if CFGuser.veh and vars.vehname == CFGuser.vehOnFoot then
-							sound = DISPATCH_SOUNDS.suspect.onFoot
-						elseif vars.id or vars.nick then
-							-- Сх№хь шэєѓ шч шу№юър, хёыш ђюђ т ёђ№шьх.
-							vars.id = tonumber(vars.id) or sampGetPlayerIdByNickname(vars.nick)
-							res, vars.vehid, vars.vehcolor = getModelIdAndColorByPlayerId(vars.id)
-
-							if res then
-								for _, soundColor in ipairs(getCarColorSound(vars.vehcolor)) do
-									table.insert(arrSounds, soundColor)
-								end
-								sound = getVehSound(vars.vehid)
-							end
-						end
-					else
-						print("Юјшсър т чтѓъх Й"..i.." т user §тхэђх '"..CFGuser.name.."'!")
-						print("Эхтючьюцэю яюыѓїшђќ чтѓъ ртђюьюсшыџ, ђръ ъръ ...")
-						print("... т ярђђх№эх эх ѓърчрэр эш @vehname, эш @vehid!")
-						return false
-					end
-				else
-					sound = vars[varname]
-				end
-			end
-		-- юђэюёшђхыќэћщ яѓђќ
-		elseif sound:find("%.") then
-			sound = sound:gsub("/", "\\")
-			sound = PATH.audio..sound
-		else
-			print("Эхшчтхёђэћщ чтѓъ "..sound.." (Й"..i..") т user §тхэђх '"..CFGuser.name.."'!")
-			return false
-		end
-
-		arrSounds[#arrSounds+1] = sound
-	end
-
-	return arrSounds
-end
-
-
-
-
--- PLAY SOUNDS --
-
-function playDispatch(event, vars)
-	local CFGev = CFG[event]
-
-	if event == 'call' then
-		lua_thread.create(playSounds, {
-			DISPATCH_SOUNDS.words.weGot10,
-			randomChoice(DISPATCH_SOUNDS.codesWithIn),
-			getAreaSoundPatch(vars.area)
-		}, 'callsVolume', true)
-
-	elseif event == 'gangActivity' then
-		-- єѓэъішџ фыџ єрщыют ђшяр Jefferson2.
-		local msgs = {}
-		for _, fname in ipairs(GANG_ACTIVITY_SOUNDS) do
-			if fname:find(vars.area, 1, true) then
-				msgs[#msgs+1] = fname
-			end
-		end
-
-		lua_thread.create(playSounds, randomChoice(msgs), 'callsVolume')
-
-	elseif event == 'areaAndCode' then
-		lua_thread.create(playSounds, PATH.audio..PATH.areaAndCode..vars.area..'.wav', 'callsVolume')
-
-	elseif event == 'find' then
-		lua_thread.create(playSounds, {
-			DISPATCH_SOUNDS.suspect.lastSeen,
-			DISPATCH_SOUNDS.words.inA,
-			getAreaSoundPatch(vars.area),
-			(
-				vars['vehid'] and DISPATCH_SOUNDS.words.onA or
-				vars['onFoot'] and DISPATCH_SOUNDS.suspect.onFoot or
-				nil
-			),
-			unpack(getCarColorSound(vars.vehcolor)),
-			getVehSound(vars.vehid)
-		}, 'findVolume', true)
-
-	elseif event == 'code1' then
-		lua_thread.create(playSounds, randomChoice(CODE_1_SOUNDS), 'radioVolume')
-
-	elseif event == 'code0' then
-		lua_thread.create(playSounds, randomChoice(CODE_0_SOUNDS), 'radioVolume')
-	end
-end
-
 function playSounds(array, volume, isPlayRadioOn)
-	-- чряѓёъ т lua_thread
+	-- баОаЛбаКаО аВ lua_thread
 	array = toTable(array)
 
 	while DISP_IS_SPEAK do wait(0) if IS_CLEAN_QUEUE then return end end
@@ -942,16 +992,16 @@ function playSounds(array, volume, isPlayRadioOn)
 end
 
 function play(sound, volume)
-	--[[єѓэъішџ я№юшу№ћтрхђ чтѓъ sound ё у№юьъюёђќў volume
-	хёыш яр№рьхђ№ ёђ№юър, ђю юэ сх№хђ у№юьъюёђќ шч шэш єрщыр
-	р тючт№рљрхђ фышээѓ фрээюую чтѓър т ьшыышёхъѓэфрѕ, 
-	ёяхішрыќэю фыџ єѓэъішш wait(), 
-	їђюсћ ёыхфѓўљшщ чтѓъ т ъюфх я№юшу№рыёџ яюёых §ђюую.
-	Яюыѓїрхђёџ: wait(play(loadAudioStream('find.mp3'), 'find'))]]
+	--[[ббаНаКбаИб аПбаОаИаГббаВаАаЕб аЗаВбаК sound б аГбаОаМаКаОбббб volume
+	аЕбаЛаИ аПаАбаАаМаЕбб бббаОаКаА, баО аОаН аБаЕбаЕб аГбаОаМаКаОббб аИаЗ аИаНаИ баАаЙаЛаА
+	аА аВаОаЗаВбаАбаАаЕб аДаЛаИаНаНб аДаАаНаНаОаГаО аЗаВбаКаА аВ аМаИаЛаЛаИбаЕаКбаНаДаАб, 
+	баПаЕбаИаАаЛбаНаО аДаЛб ббаНаКбаИаИ wait(), 
+	ббаОаБб баЛаЕаДбббаИаЙ аЗаВбаК аВ аКаОаДаЕ аПбаОаИаГбаАаЛбб аПаОбаЛаЕ ббаОаГаО.
+	ааОаЛббаАаЕббб: wait(play(loadAudioStream("find.mp3"), "find"))]]
 
 	if tonumber(volume) then
 		volume = tonumber(volume)
-	elseif type(volume) == 'string' then
+	elseif type(volume) == "string" then
 		volume = INI.INI[volume]
 	else
 		volume = 1
@@ -962,11 +1012,30 @@ function play(sound, volume)
 	return getAudioStreamLength(sound) * 1000 - 35
 end
 
+-- NEW GETTERS --
+function getPlayerHandleOrIdByVariables(vars)
+	local playerInStream, playerHandle
 
+	playerId = vars["id"]
+	if not playerId then
+		playerId = sampGetPlayerIdByNickname(vars["nick"])
+	end
 
+	local _, ggId = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	if playerId ~= ggId then
+		playerInStream, playerHandle = sampGetCharHandleBySampPlayerId(playerId)
+	else
+		playerInStream, playerHandle = true, PLAYER_PED
+	end
+
+	return playerInStream and playerHandle or playerId
+end
+
+function getVehicleDefinedSoundByVariables(vars)
+
+end
 
 -- OTHER GETTERS --
-
 function getModelIdAndColorByPlayerId(id)
 	local playerInStream, playerHandle
 
@@ -986,7 +1055,7 @@ function getModelIdAndColorByPlayerId(id)
 			vehColor = CARS_WITH_DEF_COLOR[vehId]
 		elseif getCurrentVehiclePaintjob(carHandle) ~= -1 then
 			vehColor = "Customize"
-		elseif inArray(vehId, CARS_TO_SOUND_TWO_COLORS) then
+		elseif isValueIsInArray(vehId, CARS_TO_SOUND_TWO_COLORS) then
 			local c1, c2 = getCarColours(carHandle)
 			vehColor = {c1, c2}
 		else
@@ -1008,20 +1077,15 @@ function getMarkerArea(markerId)
 		end
 	end
 	if not markerPos then
-		print("Эх эрщфхэр яючшішџ ьр№ъх№р ё id "..markerId..'!')
+		print("ааЕ аНаАаЙаДаЕаНаА аПаОаЗаИбаИб аМаАбаКаЕбаА б id "..markerId.."!")
 		return false 
 	end
 
-	return calculateArea(markerPos.x, markerPos.y)
-end
-
-function calculateArea(x, y)
 	for i, v in ipairs(AREAS) do
-		if (x >= v[2]) and (y >= v[3]) and (x <= v[5]) and (y <= v[6]) then
+		if (markerPos.x >= v[2]) and (markerPos.y >= v[3]) and (markerPos.x <= v[5]) and (markerPos.y <= v[6]) then
 			return v[1]
 		end
 	end
-	return "Unknown"
 end
 
 function getPlayerCity(ped)
@@ -1036,28 +1100,26 @@ function getPlayerCity(ped)
 			return v[1]
 		end
 	end
-
-	return nil
 end
 
 function getPlayerArea(ped)
 	if getCharActiveInterior(ped) ~= 0 then return "San Andreas" end
 	local x, y, _ = getCharCoordinates(ped)
-	return calculateArea(x, y)
+	for i, v in ipairs(AREAS) do
+		if (x >= v[2]) and (y >= v[3]) and (x <= v[5]) and (y <= v[6]) then
+			return v[1]
+		end
+	end
 end
 
-
-
-
 -- GETTERS SOUNDS --
-
 function getCarModelByName(nameModel)
 	for id, name in pairs(CAR_NAMES) do
 		if name:tolower() == nameModel:tolower() then
 			return id
 		end
 	end
-	-- яюыќчютрђхыќёъшх
+	-- аПаОаЛбаЗаОаВаАбаЕаЛббаКаИаЕ
 	if CFG.serverConfig then
 		for name, id in pairs(CFG.serverConfig.vehNames) do
 			if name:tolower() == nameModel:tolower() then
@@ -1071,23 +1133,23 @@ function getVehSound(modelCarId)
 	for class, arrayIds in pairs(CARS) do
 		for _, idModel in ipairs(arrayIds) do
 			if idModel == modelCarId then
-				return loadAudioStream(PATH.audio..PATH.vehicles..class..'.wav')
+				return loadAudioStream(PATH.audio..PATH.vehicles..class..".wav")
 			end
 		end
 	end
 end
 
 function getCarColorSound(color)
-	-- Тючт№рљрхђ ьрёёшт
-	if type(color) == 'string' then
-		return {loadAudioStream(PATH.audio..PATH.colors..color..'.wav')}
+	-- ааОаЗаВбаАбаАаЕб аМаАббаИаВ
+	if type(color) == "string" then
+		return {loadAudioStream(PATH.audio..PATH.colors..color..".wav")}
 	end
 
 	color = toTable(color)
 	local sounds = {}
 	local firstColor
 
-	-- Хёыш фтющэющ ітхђ
+	-- абаЛаИ аДаВаОаЙаНаОаЙ баВаЕб
 	for _, c in ipairs(color) do
 		if c ~= "Not sound" then
 
@@ -1096,14 +1158,14 @@ function getCarColorSound(color)
 					if c == idColor then
 						local t = colorName:split(" ")
 						if t[#t] ~= firstColor then
-							-- Хёђќ light/dark
+							-- аббб light/dark
 							if #t == 2 then
 								sounds[#sounds+1] = loadAudioStream(
-									PATH.audio..PATH.colors..t[1]..'.wav'
+									PATH.audio..PATH.colors..t[1]..".wav"
 								)
 							end
 							sounds[#sounds+1] = loadAudioStream(
-								PATH.audio..PATH.colors..t[#t]..'.wav'
+								PATH.audio..PATH.colors..t[#t]..".wav"
 							)
 							firstColor = t[#t]
 						end
@@ -1119,15 +1181,15 @@ function getCarColorSound(color)
 end
 
 function getAreaSoundPatch(area)
-	area = area:gsub('-', ' '):gsub('_', ' '):gsub("'", ''):gsub('"', '')
+	area = area:gsub("-", " "):gsub("_", " "):gsub("\"", ""):gsub("\'", "")
 
-	local patch = PATH.audio..PATH.area..area..'.wav'
+	local patch = PATH.audio..PATH.area..area..".wav"
 	if doesFileExist(patch) then
 		return patch
 	else
 		local newArea = AREAS_NOT_VOICED[area:tolower()]
 
-		-- яюыќчютрђхыќёъшх
+		-- аПаОаЛбаЗаОаВаАбаЕаЛббаКаИаЕ
 		if not newArea and CFG.serverConfig and CFG.serverConfig.areas then
 			for name, ar in pairs(CFG.serverConfig.areas) do
 				if name:tolower() == area:tolower() then
@@ -1139,18 +1201,14 @@ function getAreaSoundPatch(area)
 		if newArea then
 			return getAreaSoundPatch(newArea)
 		else
-			print("арщюэр \""..area.."\" эх эрщфхэю.")
+			print("а аАаЙаОаНаА \""..area.."\" аНаЕ аНаАаЙаДаЕаНаО.")
 			return false
 		end
 	end
 end
 
-
-
-
 -- ICONS ON MAP --
-
--- шъюэър эр ър№ђх (id: ёђрэфр№ђэћщ)
+-- аИаКаОаНаКаА аНаА аКаАббаЕ (id: ббаАаНаДаАббаНбаЙ)
 function sampev.onSetMapIcon(id, pos, typeIcon, color, style)
 	-- print("onSetMapIcon id="..id..", type="..typeIcon..", ("..pos.x..", "..pos.y..")")
 	MAP_ICONS[#MAP_ICONS+1] = {
@@ -1169,20 +1227,19 @@ function sampev.onRemoveMapIcon(id)
 	end
 end
 
-
--- ъ№рёэрџ ьхђър (id: 1)
+-- аКбаАбаНаАб аМаЕбаКаА (id: 1)
 function sampev.onSetCheckpoint(pos, radius)
 	-- print("onSetCheckpoint ("..pos.x..", "..pos.y..")")
-	-- гфрыџхь я№хфћфѓљѓў ьхђъѓ
+	-- аЃаДаАаЛбаЕаМ аПбаЕаДбаДбббб аМаЕбаКб
 	for i, icon in ipairs(MAP_ICONS) do
-		if icon.id == 'check' then
+		if icon.id == "checkpoint" then
 			MAP_ICONS[i] = nil
 			break
 		end
 	end
 
 	MAP_ICONS[#MAP_ICONS+1] = {
-		id='check',
+		id="checkpoint",
 		pos=pos,
 		type=1
 	}
@@ -1191,25 +1248,25 @@ end
 function sampev.onDisableCheckpoint()
 	-- print("onDisableCheckpoint")
 	for i, icon in ipairs(MAP_ICONS) do
-		if icon.id == 'check' then
+		if icon.id == "checkpoint" then
 			MAP_ICONS[i] = nil
 		end
 	end
 end
 
--- уюэюїэћщ їхъяюшэђ (id: 2)
+-- аГаОаНаОбаНбаЙ баЕаКаПаОаИаНб (id: 2)
 function sampev.onSetRaceCheckpoint(type, pos, nextPos, size)
 	-- print("onSetRaceCheckpoint ("..pos.x..", "..pos.y..")")
-	-- гфрыџхь я№хфћфѓљѓў ьхђъѓ
+	-- аЃаДаАаЛбаЕаМ аПбаЕаДбаДбббб аМаЕбаКб
 	for i, icon in ipairs(MAP_ICONS) do
-		if icon.id == 'race' then
+		if icon.id == "racecheckpoint" then
 			MAP_ICONS[i] = nil
 			break
 		end
 	end
 
 	MAP_ICONS[#MAP_ICONS+1] = {
-		id='race',
+		id="racecheckpoint",
 		pos=pos,
 		type=2
 	}
@@ -1218,25 +1275,21 @@ end
 function sampev.onDisableRaceCheckpoint()
 	-- print("onDisableRaceCheckpoint")
 	for i, icon in ipairs(MAP_ICONS) do
-		if icon.id == 'race' then
+		if icon.id == "racecheckpoint" then
 			MAP_ICONS[i] = nil
 		end
 	end
 end
 
-
-
-
 -- HELP FUNCTIONS --
-
-function inArray(variable, arr, isRegEx)
+function isValueIsInArray(value, arr, isRegEx)
 	for i, element in pairs(arr) do
-		if type(i) == 'string' then
+		if type(i) == "string" then
 			element = i
 		end
-		if type(variable) == 'string' and string.find(variable:tolower(), element:tolower(), 1, not isRegEx) then
+		if type(value) == "string" and string.find(value:tolower(), element:tolower(), 1, not isRegEx) then
 			return true
-		elseif variable == element then
+		elseif value == element then
 			return true
 		end
 	end
@@ -1252,22 +1305,8 @@ function varInElementsArray(var, arr)
 	return false
 end
 
-function esc(s)
-      return (s:gsub('%^', '%%^')
-               :gsub('%$', '%%$')
-               :gsub('%(', '%%(')
-               :gsub('%)', '%%)')
-               :gsub('%.', '%%.')
-               :gsub('%[', '%%[')
-               :gsub('%]', '%%]')
-               :gsub('%*', '%%*')
-               :gsub('%+', '%%+')
-               :gsub('%-', '%%-')
-               :gsub('%?', '%%?'))
-end
-
 function randomChoice(arr)
-	-- тючт№рљрхђ ёыѓїрщэћщ §ыхьхэђ arr
+	-- аВаОаЗаВбаАбаАаЕб баЛббаАаЙаНбаЙ баЛаЕаМаЕаНб arr
 	if #arr == 0 then
 		local iter = 0
 		newArr = {}
@@ -1292,16 +1331,8 @@ function string:split(sep)
 	return t
 end
 
-function concatTablesWithKeys(t1, t2)
-	for k,v in pairs(t2) do
-		t1[k] = v
-	end
-
-	return t1
-end
-
 function toTable(var)
-	if type(var) ~= 'table' then
+	if type(var) ~= "table" then
 		return {var}
 	else
 		return var
@@ -1337,203 +1368,40 @@ function sampGetPlayerIdByNickname(nick)
     for i = 0, 1000 do if sampIsPlayerConnected(i) and sampGetPlayerNickname(i) == tostring(nick) then return i end end
 end
 
-
-
-
 -- OTHER FUNCTIONS --
-
-function checkUpdates()
-	if not INI.INI.isCheckUpdates then return end
-
-	local fpath = os.tmpname()
-	downloadUrlToFile(
-		"https://raw.githubusercontent.com/don-aks/PoliceDispatchLua/main/Police%20Dispatch.lua", 
-		fpath,
-		function(_, status, _, _)
-			if status == download_status.STATUS_ENDDOWNLOADDATA then
-				if doesFileExist(fpath) then
-					local f = io.open(fpath, "r")
-					local f_text = f:read("*a")
-					f:close()
-					local versNum = string.match(f_text, "script_version_number%s*%((%d+)%)")
-
-					if versNum and tonumber(versNum) > thisScript().version_num then
-						local versStr = string.match(f_text, "script_version%s*%([\"'](.-)[\"']%)")
-						chatMessage("Тэшьрэшх! Фюёђѓяэю юсэютыхэшх {32B4FF}v"..versStr..'{ffffff}.')
-						chatMessage("Фыџ ях№хѕюфр эр ёђ№рэшіѓ ёъ№шяђр шёяюыќчѓщђх ьхэў {32B4FF}/pdradio{ffffff}.")
-					end
-				end
-			end
-		end
-	)
-end
-
 function mainMenu()
+	local btn1 = u8:decode("абаБбаАбб")
+	local btn2 = u8:decode("абаМаЕаНаА")
+	
 	local text = string.format(
-		"бъ№шяђ:\t%s\n".. -- 0
-		"Я№ютх№ър юсэютыхэшщ\t%s\n".. -- 1
-		"Тюёя№юшчтюфшђќ т РдЪ\t%s\n".. -- 2
-		"У№юьъюёђќ {FF4400}тћчютют 911:\t{FFFFFF}%s\n".. -- 3
-		"У№юьъюёђќ {ABCDEF}/find:\t{FFFFFF}%s\n".. -- 4
-		"У№юьъюёђќ {8D8DFF}/r:\t{FFFFFF}%s\n".. -- 5
-		"У№юьъюёђќ {66DDAA}user-§тхэђют:\t{FFFFFF}%s\n".. -- 6
+		"аЁаКбаИаПб:\t%s\n".. -- 0
+		"абаОаВаЕбаКаА аОаБаНаОаВаЛаЕаНаИаЙ\t%s\n".. -- 1
+		"ааОбаПбаОаИаЗаВаОаДаИбб аВ ааЄа\t%s\n".. -- 2
+		"абаОаМаКаОббб {FF4400}аВбаЗаОаВаОаВ 911:\t{FFFFFF}%s\n".. -- 3
+		"абаОаМаКаОббб {ABCDEF}/find:\t{FFFFFF}%s\n".. -- 4
+		"абаОаМаКаОббб {8D8DFF}/r:\t{FFFFFF}%s\n".. -- 5
+		"абаОаМаКаОббб {66DDAA}user-баВаЕаНбаОаВ:\t{FFFFFF}%s\n".. -- 6
 		"  \n".. -- 7
-		"Юђъыўїхэшх {66DDAA}user-§тхэђют\n".. -- 8
-		"Я№ютх№ър ярђђх№эр\n".. -- 9
-		"Юїшёђшђќ юїх№хфќ тюёя№юшчтхфхэшџ\n".. -- 10
+		"абаКаЛббаЕаНаИаЕ {66DDAA}user-баВаЕаНбаОаВ\n".. -- 8
+		"абаОаВаЕбаКаА аПаАббаЕбаНаА\n".. -- 9
+		"абаИббаИбб аОбаЕбаЕаДб аВаОбаПбаОаИаЗаВаЕаДаЕаНаИб\n".. -- 10
 		"  \n".. -- 11
-		"бђ№рэшір ёъ№шяђр", -- 12
+		"аЁббаАаНаИбаА баКбаИаПбаА", -- 12
 
-		(INI.INI.state and "{21C90E}Тъы." or '{C91A14}Юђъы.'),
-		(INI.INI.isCheckUpdates and "{21C90E}Тъы." or '{C91A14}Юђъы.'),
-		(INI.INI.soundInAFK and "{21C90E}Тъы." or '{C91A14}Юђъы.'),
-		(INI.INI.callsVolume == 0 and "{C91A14}Юђъы." or INI.INI.callsVolume), 
-		(INI.INI.findVolume == 0 and "{C91A14}Юђъы." or INI.INI.findVolume),
-		(INI.INI.radioVolume == 0 and "{C91A14}Юђъы." or INI.INI.radioVolume),
-		(INI.INI.userVolume == 0 and "{C91A14}Юђъы." or INI.INI.userVolume)
+		(INI.INI.state and "{21C90E}ааКаЛ." or "{C91A14}абаКаЛ."),
+		(INI.INI.isCheckUpdates and "{21C90E}ааКаЛ." or "{C91A14}абаКаЛ."),
+		(INI.INI.soundInAFK and "{21C90E}ааКаЛ." or "{C91A14}абаКаЛ."),
+		(INI.INI.callsVolume == 0 and "{C91A14}абаКаЛ." or INI.INI.callsVolume), 
+		(INI.INI.findVolume == 0 and "{C91A14}абаКаЛ." or INI.INI.findVolume),
+		(INI.INI.radioVolume == 0 and "{C91A14}абаКаЛ." or INI.INI.radioVolume),
+		(INI.INI.userVolume == 0 and "{C91A14}абаКаЛ." or INI.INI.userVolume)
 	)
-	sampShowDialog(20000, "Эрёђ№ющъш - PD Radio v"..thisScript().version.." | "..CFG.name, text, BTN1, BTN2, 4)
+	title = u8:decode("ааАбббаОаЙаКаИ - PD Radio v"..thisScript().version.." | "..CFG.configInfo.name)
+	sampShowDialog(20000, title, u8:decode(text), btn1, btn2, 4)
 end
-
-function checkDialogsRespond()
-	-- Эрѕюфшђёџ т main() while true do
-	local result, button, list, _ = sampHasDialogRespond(20000)
-	if result and button == 1 then
-		listMainMenu = list
-		if list == 0 then
-			INI.INI.state = not INI.INI.state
-			saveIni()
-			mainMenu()
-		elseif list == 1 then
-			INI.INI.isCheckUpdates = not INI.INI.isCheckUpdates
-			saveIni()
-			mainMenu()
-		elseif list == 2 then
-			INI.INI.soundInAFK = not INI.INI.soundInAFK
-			saveIni()
-			mainMenu()
-			if not INI.INI.soundInAFK then
-				chatMessage("вхях№ќ фшёяхђїх№ эх сѓфхђ ючтѓїштрђќ ёюсћђшџ, ъюђю№ћх я№юшчюјыш, ъюуфр тћ сћыш т РдЪ сюыќјх 2ѕ ьшэѓђ.")
-			end
-		elseif list == 3 then
-			sampShowDialog(20001, "У№юьъюёђќ {FF4400}тћчютют 911:", "Хёыш тћ ѕюђшђх юђъыўїшђќ ючтѓїъѓ, ттхфшђх 0.", 
-				BTN1, BTN2, 1)
-		elseif list == 4 then
-			sampShowDialog(20001, "У№юьъюёђќ {ABCDEF}/find:", "Хёыш тћ ѕюђшђх юђъыўїшђќ ючтѓїъѓ, ттхфшђх 0.", 
-				BTN1, BTN2, 1)
-		elseif list == 5 then
-			sampShowDialog(20001, "У№юьъюёђќ {8D8DFF}/r:", "Хёыш тћ ѕюђшђх юђъыўїшђќ ючтѓїъѓ, ттхфшђх 0.", 
-				BTN1, BTN2, 1)
-		elseif list == 6 then
-			sampShowDialog(20001, "У№юьъюёђќ {66DDAA}user-§тхэђют:", "Хёыш тћ ѕюђшђх юђъыўїшђќ ючтѓїъѓ, ттхфшђх 0.", 
-				BTN1, BTN2, 1)
-		elseif list == 7 then
-			mainMenu()
-		elseif list == 8 then
-			local userEvents = ""
-			if INI[CFG.name.."_UserEvents"] then
-				for i, it in ipairs(INI[CFG.name.."_UserEvents"]) do
-					userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Тъы." or "{C91A14}Юђъы.").."\n"
-				end
-			end
-			if userEvents == "" then
-				chatMessage("User-§тхэђют эх эрщфхэю!")
-				mainMenu()
-			else
-				sampShowDialog(20002, "Юђъыўїхэшх user-§тхэђют", userEvents,
-					BTN1, BTN2, 4)
-			end
-		elseif list == 9 then
-			sampShowDialog(20003, "Я№ютх№ър ярђђх№эр", 
-				"Ттхфшђх эѓцэѓў ёђ№юъѓ шч їрђр фыџ я№ютх№ъш ш тюёя№юшчтхфхэшџ:\n"..
-				"Фыџ чрфрэшџ ітхђр ёђ№юъш шёяюыќчѓщђх тэрїрых R: (ітхђ схч #) (бђ№юър).",
-			BTN1, BTN2, 1)
-		elseif list == 10 then
-			IS_CLEAN_QUEUE = true
-			wait(100)
-			IS_CLEAN_QUEUE = false
-			chatMessage("Юїх№хфќ тюёя№юшчтхфхэшџ сћыр юїшљхэр.")
-		elseif list == 11 then
-			mainMenu()
-		elseif list == 12 then
-			os.execute("start https://github.com/don-aks/PoliceDispatchLua/releases")
-		end
-	end
-
-	-- У№юьъюёђќ
-	local result, button, _, input = sampHasDialogRespond(20001)
-	if result and button == 1 then
-		if not tonumber(input) or tonumber(input) < 0 then
-			chatMessage("У№юьъюёђќ фюыцэю сћђќ їшёыюь сюыќјшь шыш №ртэћь эѓыў.")
-		else
-			input = tonumber(input)
-			if listMainMenu == 2 then INI.INI.callsVolume = input
-			elseif listMainMenu == 3 then INI.INI.findVolume = input
-			elseif listMainMenu == 4 then INI.INI.radioVolume = input
-			elseif listMainMenu == 5 then INI.INI.userVolume = input end
-			saveIni()
-		end
-		mainMenu()
-	elseif result then
-		mainMenu()
-	end
-
-	-- Юђъыўїхэшх user §тхэђют
-	local result, button, list, _ = sampHasDialogRespond(20002)
-	if result and button == 1 then
-		local key = CFG.name.."_UserEvents"
-		INI[key][list+1] = not INI[key][list+1]
-		saveIni()
-
-		local userEvents = ""
-		for i, it in ipairs(INI[CFG.name.."_UserEvents"]) do
-			userEvents = userEvents .. CFG.user[i].name.."\t"..(it and "{21C90E}Тъы." or "{C91A14}Юђъы.").."\n"
-		end
-		sampShowDialog(20002, "Юђъыўїхэшх user-§тхэђют", userEvents,
-			BTN1, BTN2, 4)
-	elseif result then
-		mainMenu()
-	end
-
-	-- Я№ютх№ър ёђ№юъш
-	local result, button, _, input = sampHasDialogRespond(20003)
-	if result and button == 1 then
-		local color = input:match("^R: (%w+) ")
-		input = input:gsub("^R: (%w+) ", "")
-
-		if color and not tonumber(color) then
-			color = tonumber("0x"..color)
-		end
-
-		local h, s = handleEvent(input, color)
-		if h == false and s == 'not ev' then
-			chatMessage("бюсћђшх эх эрщфхэю. Тючьюцэю тћ эхя№ртшыќэю ттхыш ёђ№юъѓ т config.json шыш т яюых фыџ ттюфр.")
-			chatMessage("Ышсю, хёыш §ђю user-§тхэђ, юэ ьюцхђ сћђќ юђъыўїхэ т эрёђ№ющърѕ.")
-		elseif h == false and s == 'volume' then
-			chatMessage("бюсћђшх, ъюђю№юх тћ яћђрхђхёќ тюёя№юшчтхёђш, юђъыўїхэю.")
-		elseif h == false and s == 'question words' then
-			chatMessage("Т ёююсљхэшш яю №рішш эрщфхэю тюя№юёшђхыќэюх ёыютю.")
-		elseif h == false and s == 'text radio' then
-			chatMessage("Т ёююсљхэшш яю №рішш эх эрщфхэю эшъръшѕ ъыўїхтћѕ ёыют.")
-		elseif h == false and s == 'stopWords' then
-			chatMessage('Т тћчютх эрщфхэћ "ёђюя-ёыютр" шч config.json.')
-		elseif h == false then
-			chatMessage("Я№ш я№ютх№ъш ёђ№юъш я№юшчюјыр юјшсър. Яюф№юсэхх т moonloader.log.")
-		elseif h == true then
-			chatMessage("Трјр ёђ№юър ёюфх№црыр ьрыю фрээћѕ, яю§ђюьѓ ёюѕ№рэхэр фю ёыхфѓўљхую ёюсћђшџ.")
-			chatMessage("Я№шьхїрэшх: ъръ ђюыќъю я№шфхђ эютрџ ёђ№юър т їрђх, фрээћх юсэѓыџђќёџ.")
-		else
-			chatMessage("Ърцхђёџ, тёх я№юјыю ѓёяхјэю.")
-		end
-	elseif result then
-		mainMenu()
-	end
-end
-
 
 function saveIni()
-	inicfg.save(INI, PATH.ini)
+	inicfg.save(INI, PATH.config.."config.ini")
 end
 
--- бярёшсю чр яюффх№цъѓ youtube.com/c/Brothersincompany <3
--- vk.com/donaks
+BLAGODARNOSTI = [[а баАаЗбаАаБаОбаКаЕ баКбаИаПбаА ббаАаВббаВаОаВаАаЛаИ: ааЛаАаД аЇаЕбаЕаДаНаИбаЕаНаКаО, ааМаИббаИаЙ аЅаОаЛаОаДаНбаЙ (!), ]]

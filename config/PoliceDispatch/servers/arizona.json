@@ -1,0 +1,66 @@
+{
+    "configInfo": {
+        "name": "Arizona RP",
+        "authors": "donaks, ",
+        "version": "",
+        "versionNumber": 0,
+        "dateLastUpdate": ""
+    },
+    "serverInfo": {
+        "name": "Arizona "
+    },
+    "events": {
+        "radio": {
+            "chatMessage": "^%[R%] .+ %a+_%a+%[%d+%]:[^%(]@text",
+            "useRegexInPattern": true,
+            "isPlayShotsFired": true
+        },
+        "call911": {
+            "chatMessage": "{B03131}@nick[@id]{FFFFFF} с города \"@area\", вызывает полицию, местоположение: {B03131}@text{FFFFFF}."
+        },
+        "user": [
+            {
+                "name": "/bk",
+                "chatMessage": "Важно! {FFFFFF}@nick[@id] вызывает подкрепление с причиной @reason",
+                "soundList": "@codeone",
+                "isPlayRadioOn": false
+            },
+
+            {
+                "name": "/su",
+                "chatMessage": [
+                    "Внимание! {FFFFFF}@nick[@id] был(а) объявлен(a) в розыск! Обвинитель: @nick[@id] | Причина: {FF6347}@reason",
+                    "Внимание! {FFFFFF}@nick[@id]{FF6347} был(а) объявлен(a) в розыск! Причина: "
+                ],
+                "soundList": [
+                    "suspect/We got a 10-.wav",
+                    "@randomtencodewithin",
+                    "@randomareaincityplayer"
+                ],
+                "isPlayRadioOn": true
+            },
+            {
+                "name": "/pursuit",
+                "chatMessage": "Вы успешно начали погоню за игроком @nick[@id]",
+                "idMarker": 1,
+                "soundList": [
+                    "suspect/Respond to a 10-.wav",
+                    "@randomtencodewithin",
+                    "@area",
+                    // Воспроизводит, если игрок в зоне прорисовки:
+                    // "Suspect on a *color* *veh*" или "Suspect on foot".
+                    // А если нет в прорисовке, то игнорируется.
+                    // Доступно только в user эвентах.
+                    "@suspectveh"
+                ],
+
+                "isPlayRadioOn": true
+            },
+            {
+                "name": "/m",
+                "chatMessage": "(Мегафон) @nick говорит: @message",
+                "soundList": "@megafon"
+            }
+        ]
+    }
+}

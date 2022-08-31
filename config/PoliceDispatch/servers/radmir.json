@@ -1,0 +1,38 @@
+{
+    "configInfo": {
+        "name": "Radmir RP"
+    },
+    "serverInfo": {
+        "name": "Radmir Role Play"
+    },
+    "events": {
+        "radio": {
+            "chatMessage": "[R] @zvanieandnick: @text"
+        },
+        "user": [
+            {
+                "name": "Запрос поддержки",
+                "chatMessage": "^%* [^%s]+ %a+ %a+ запрашивает поддержку%.$",
+                "isUseRegEx": true,
+                "idMarker": 1,
+                "soundList": [
+                    "DISP.words.headTo10",
+                    "@randomtencodewithin",
+                    "@cityplayer"
+                ],
+                "isPlayRadioOn": true
+            },
+            {
+                "name": "9-1-1",
+                "pattern": "[911] Поступил вызов от: ",
+                "useRegexInPattern": false,
+                "soundList": [
+                    "suspect/We got a 10-.wav",
+                    "@randomtencodewithin",
+                    "@randomareaincityplayer"
+                ],
+                "isPlayRadioOn": true
+            }
+        ]
+    }
+}

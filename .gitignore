@@ -1,0 +1,17 @@
+
+AutoReboot.lua
+check-moonloader-updates.lua
+lib/game/*
+lib/windows/*
+lib/iconv/*
+*.dll
+reload_all.lua
+moonloader.log
+SF Integration.lua
+lib/bitex.lua
+lib/encoding.lua
+lib/matrix3x3.lua
+lib/sampfuncs.lua
+lib/moonloader.lua
+lib/vector3d.lua
+lib/vkeys.lua

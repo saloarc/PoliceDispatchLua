@@ -1,0 +1,52 @@
+{
+    "configInfo": {
+        "name": "Training RP",
+        "authors": "donaks, Роман Шуруповёрт",
+		"version": "2.0",
+		"versionNumber": 2,
+		"dateLastUpdate": ""
+    },
+	"serverInfo": {
+		"name": "TRAINING"
+	},
+	"events": {
+		"radio": {
+			"chatMessage": [
+				"** [Рация: @n] @nick: @text **",
+				"** [Рация: @n][@team] @nick: @text **"
+			]
+		},
+		"call911": {
+			"chatMessage": [
+				"@nick(@id):{91FF00} [911] @area: @text",
+				"@nick(@id):{91FF00} 911 @area: @text",
+				"@nick(@id):{91FF00} [9-1-1] @area: @text",
+				"@nick(@id):{91FF00} 9-1-1 @area: @text",
+				"@nick(@id):{91FF00} [911] @area - @text",
+				"@nick(@id):{91FF00} 911 @area - @text",
+				"@nick(@id):{91FF00} [9-1-1] @area - @text",
+				"@nick(@id):{91FF00} 9-1-1 @area - @text"
+			]
+		},
+		"user": [
+			{
+				"name": "9-1-1 без района",
+				"chatMessage": [
+					"@nick(@id):{91FF00} [911] @text",
+					"@nick(@id):{91FF00} 911 @text",
+					"@nick(@id):{91FF00} [9-1-1] @text",
+					"@nick(@id):{91FF00} 9-1-1 @text"
+				],
+				"soundList": [
+					"suspect/We got a 10-.wav",
+					"@randomtencodewithin",
+					"@randomareaincityplayer"
+				],
+				"isPlayRadioOn": true
+			}
+		],
+		// По умолчанию строка на соответствие user эвентам проверяется самымой первой
+		// Если же "userNotPriority": true, то они проверяются после всех остальных
+		"userNotPriority": true
+	}
+}
