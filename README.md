@@ -10,9 +10,6 @@
 
 Дальнейшая разработка продолжается.
 
-### Демонстрационный видеоролик (просто нажми на обложку): 
-[![](https://img.youtube.com/vi/fyLzhiWMPBo/mqdefault.jpg)](https://www.youtube.com/watch?v=fyLzhiWMPBo)
-
 ### Обзор скрипта с диспетчером на канале Brothers In Company:
 [![](https://img.youtube.com/vi/I4L-vp6QMb8/mqdefault.jpg)](https://youtu.be/I4L-vp6QMb8?t=381)
 
